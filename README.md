@@ -1,0 +1,64 @@
+# Booster
+
+A menu bar app for macOS 15+: one volume slider per app (Safari at 40%, Chrome at 100%),
+boost up to 400%, and a "Boost everything" slider on top. Each app also gets its own 5-band EQ and a
+compressor (quiet parts up, loud parts down). A limiter stops boosted sound from crackling.
+No driver to install.
+
+## Use it
+
+Click the speaker icon in the menu bar. Apps show up once they play sound.
+
+- Slider middle = 100%. Left = quieter, right (orange) = boost.
+- Click the percentage to reset to 100%. Click the speaker to mute that app.
+- The sliders button on a row opens that app's compressor (Off / Light / Strong) and EQ
+  (Bass 100 Hz, Warmth 250, Mid 1k, Clarity 3.5k, Treble 10k; ±12 dB; presets).
+- Settings are remembered per app.
+
+## Build
+
+```bash
+./build.sh install    # builds, copies to ~/Applications/Booster.app, starts it
+swift test            # gain and limiter tests
+```
+
+The first start asks for **System Audio Recording** permission. The app is signed ad hoc with a
+requirement on its identifier (`local.booster.Booster`), so the permission survives rebuilds. If it
+ever stops working: System Settings → Privacy & Security → Screen & System Audio Recording → turn
+Booster off and on.
+
+## How it works
+
+`Sources/BoosterCore/AppTap.swift`: for an app that is not at 100%, Booster creates a Core Audio
+process tap (macOS 14.2+) that mutes the app's normal output, then plays the same sound through a
+private aggregate device on the current output, through EQ -> compressor -> volume -> limiter
+(`GainProcessor.swift`, `Equalizer.swift`, `Compressor.swift`). An app at 100%, with a flat EQ,
+the compressor off and the master at 100%, is never touched.
+
+On an output with inputs of its own (an audio interface like a Scarlett, a headset), the aggregate
+device also carries that device's mic streams. Booster finds the tap's stream by counting the
+device's input streams, reads only that, and switches the device's inputs off.
+
+The panel is an `NSPopover` rather than SwiftUI's `MenuBarExtra`, because `MenuBarExtra` did not
+grow when an app's EQ opened.
+
+Helper processes are grouped under their app with the system's "responsible process" lookup:
+Safari plays through `com.apple.WebKit.GPU`, Chrome through `com.google.Chrome.helper`.
+
+If Booster quits or crashes, macOS removes its taps and every app plays normally again.
+
+## Testing without clicking
+
+`tools/ctl.sh dump`, `tools/ctl.sh debug=on`, `tools/ctl.sh com.apple.Safari=0.5`,
+`tools/ctl.sh comp=com.apple.Safari:strong`, `tools/ctl.sh eq=com.apple.Safari:6,0,0,0,-3`,
+`tools/ctl.sh open`, `tools/ctl.sh expand=com.apple.Safari`, `tools/ctl.sh snapshot` (logs the panel's
+size and saves `~/Library/Logs/Booster-panel.png`; its text comes out invisible, the layout is right).
+Output goes to `~/Library/Logs/Booster.log`.
+
+## Known limits
+
+- Sound always goes to the Mac's current default output. An app set to a different output device
+  inside its own settings gets moved to the default while Booster changes its volume.
+- When an app starts playing from silence, the first fraction of a second can be at its normal
+  level before Booster takes over. Paused apps stay held for 30 seconds to avoid this on resume.
+- Taking over an app adds a few milliseconds of delay.
