@@ -2,7 +2,7 @@ import CoreAudio
 import Foundation
 
 public enum TapError: Error, CustomStringConvertible {
-    case createTap(OSStatus), createAggregate(OSStatus), ioProc(OSStatus), start(OSStatus)
+    case createTap(OSStatus), createAggregate(OSStatus), ioProc(OSStatus), start(OSStatus), inputs(String)
 
     public var description: String {
         switch self {
@@ -10,6 +10,7 @@ public enum TapError: Error, CustomStringConvertible {
         case .createAggregate(let s): "could not open the output device (\(s))"
         case .ioProc(let s): "could not attach to the audio thread (\(s))"
         case .start(let s): "could not start audio (\(s))"
+        case .inputs(let why): "could not keep the output device's mic out of it (\(why))"
         }
     }
 }
@@ -87,8 +88,13 @@ public final class AppTap {
 
         let tap = AppTap(processObjects: processObjects, outputUID: outputUID, processor: processor,
                          tapID: tapID, aggregateID: aggregateID, ioProc: ioProc)
-        tap.diagnostics = wireInputs(aggregateID: aggregateID, tapID: tapID, outputUID: outputUID,
-                                     ioProc: ioProc, processor: processor)
+        do {
+            tap.diagnostics = try wireInputs(aggregateID: aggregateID, tapID: tapID, outputUID: outputUID,
+                                             ioProc: ioProc, processor: processor)
+        } catch {
+            tap.invalidate() // fail closed: never start with the device's mic on or the source unknown
+            throw error
+        }
         status = AudioDeviceStart(aggregateID, ioProc)
         guard status == noErr else {
             tap.invalidate()
@@ -100,8 +106,10 @@ public final class AppTap {
     /// An output device with inputs (an audio interface, a headset) brings its mic channels into the
     /// aggregate device too. Find the stream that really is the tap, point the processor at it, and
     /// switch every other input stream off so the device's mics are never read.
+    /// Throws, so the tap is never started, unless the tap is positively found and every other input
+    /// is confirmed off.
     private static func wireInputs(aggregateID: AudioObjectID, tapID: AudioObjectID, outputUID: String,
-                                   ioProc: AudioDeviceIOProcID?, processor: GainProcessor) -> String {
+                                   ioProc: AudioDeviceIOProcID?, processor: GainProcessor) throws -> String {
         let streams = CA.objectList(aggregateID, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeInput)
         let tapUID = CA.string(tapID, kAudioTapPropertyUID)
         var notes: [String] = []
@@ -121,34 +129,47 @@ public final class AppTap {
             notes.append("device has \(deviceInputs) input streams")
             if streams.count == deviceInputs + 1 { tapIndex = deviceInputs }
         }
-        if let tapIndex { notes.append("tap = in[\(tapIndex)]") }
-        processor.tapBufferIndex = tapIndex ?? -1
-        guard let ioProc, streams.count > 1 else {
-            return notes.joined(separator: ", ") + (tapIndex == nil ? ", tap not identified, using last" : "")
-        }
         guard let tapIndex else {
-            return notes.joined(separator: ", ") + ", tap not identified, using last; device inputs left on"
+            throw TapError.inputs("app's sound not found among \(streams.count) input streams")
         }
+        notes.append("tap = in[\(tapIndex)]")
+        processor.tapBufferIndex = tapIndex
+        guard streams.count > 1 else { return notes.joined(separator: ", ") }
+        guard let ioProc else { throw TapError.inputs("no audio callback") }
 
         // AudioHardwareIOProcStreamUsage: { void *mIOProc; UInt32 mNumberStreams; UInt32 mStreamIsOn[n] }
         var addr = CA.address(kAudioDevicePropertyIOProcStreamUsage, scope: kAudioObjectPropertyScopeInput)
         var size: UInt32 = 0
         guard AudioObjectGetPropertyDataSize(aggregateID, &addr, 0, nil, &size) == noErr, size >= 16 else {
-            return notes.joined(separator: ", ") + ", stream usage unavailable"
+            throw TapError.inputs("stream switch unavailable")
         }
         let usage = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: 8)
         defer { usage.deallocate() }
-        usage.initializeMemory(as: UInt8.self, repeating: 0, count: Int(size))
-        usage.storeBytes(of: unsafeBitCast(ioProc, to: UnsafeMutableRawPointer.self), as: UnsafeMutableRawPointer.self)
-        guard AudioObjectGetPropertyData(aggregateID, &addr, 0, nil, &size, usage) == noErr else {
-            return notes.joined(separator: ", ") + ", stream usage read failed"
+        let capacity = (Int(size) - 12) / 4 // how many stream flags actually fit in the buffer
+
+        func read() -> Int? {
+            usage.initializeMemory(as: UInt8.self, repeating: 0, count: Int(size))
+            usage.storeBytes(of: unsafeBitCast(ioProc, to: UnsafeMutableRawPointer.self), as: UnsafeMutableRawPointer.self)
+            var readSize = size
+            guard AudioObjectGetPropertyData(aggregateID, &addr, 0, nil, &readSize, usage) == noErr else { return nil }
+            return Int(usage.load(fromByteOffset: 8, as: UInt32.self))
         }
-        let count = Int(usage.load(fromByteOffset: 8, as: UInt32.self))
+
+        guard let count = read(), count == streams.count, count <= capacity else {
+            throw TapError.inputs("stream switch reports an unexpected layout")
+        }
         for i in 0..<count {
             usage.storeBytes(of: UInt32(i == tapIndex ? 1 : 0), toByteOffset: 12 + 4 * i, as: UInt32.self)
         }
         let status = AudioObjectSetPropertyData(aggregateID, &addr, 0, nil, size, usage)
-        return notes.joined(separator: ", ") + (status == noErr ? ", other inputs switched off" : ", switching inputs off failed (\(status))")
+        guard status == noErr else { throw TapError.inputs("switching inputs off failed (\(status))") }
+
+        // Read it back: only start if the system confirms exactly the tap is on.
+        guard read() == count else { throw TapError.inputs("could not confirm the inputs are off") }
+        for i in 0..<count where usage.load(fromByteOffset: 12 + 4 * i, as: UInt32.self) != (i == tapIndex ? 1 : 0) {
+            throw TapError.inputs("input \(i) is still on")
+        }
+        return notes.joined(separator: ", ") + ", other inputs confirmed off"
     }
 
     /// Stops the tap. The app's own sound comes back at its normal level.

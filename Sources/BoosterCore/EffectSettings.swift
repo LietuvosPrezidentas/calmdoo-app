@@ -25,7 +25,8 @@ public struct EffectSettings: Equatable, Sendable {
 
     public init(eq: [Double] = [0, 0, 0, 0, 0], compression: Compression = .off) {
         let bands = (eq + Array(repeating: 0, count: Self.bandCount)).prefix(Self.bandCount)
-        self.eq = bands.map { (min(max($0, -Self.maxDB), Self.maxDB) * 2).rounded() / 2 }
+        // Anything that is not a real number (NaN, infinity) becomes 0 dB: it would crash `packed`.
+        self.eq = bands.map { $0.isFinite ? (min(max($0, -Self.maxDB), Self.maxDB) * 2).rounded() / 2 : 0 }
         self.compression = compression
     }
 

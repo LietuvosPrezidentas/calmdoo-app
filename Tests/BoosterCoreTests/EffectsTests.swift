@@ -101,3 +101,28 @@ private func dB(_ ratio: Float) -> Float { 20 * log10f(ratio) }
     #expect(!EffectSettings(compression: .light).isNeutral)
     #expect(!EffectSettings(eq: [0, 0, 0, 0.5, 0]).isNeutral)
 }
+
+// Security review finding 3: a non-number ("nan") used to slip past every clamp, get saved,
+// and crash Booster at every launch.
+@Test func nonNumbersAreRejectedEverywhere() {
+    for bad in [Double.nan, .infinity, -.infinity] {
+        #expect(GainCurve.snap(bad) == 1)
+        #expect(GainCurve.gain(volume: bad) == 1)
+        #expect(SliderScale.volume(position: bad) == 1)
+        #expect(SliderScale.position(volume: bad) == 0.5)
+        let s = EffectSettings(eq: [bad, bad, 3, bad, bad])
+        #expect(s.eq == [0, 0, 3, 0, 0])
+        _ = s.packed // used to crash on Int8(nan)
+    }
+    let p = GainProcessor(sampleRate: 48_000, gain: .nan)
+    #expect(p.gain == 1)
+    p.gain = .infinity
+    #expect(p.gain == 1)
+}
+
+// Finding 5: 400% on the app times 400% on the master used to be 16x.
+@Test func totalBoostIsCapped() {
+    #expect(GainCurve.combined(app: 4, master: 4) == GainCurve.maxTotalGain)
+    #expect(GainCurve.combined(app: 2, master: 1.5) == 3)
+    #expect(GainCurve.combined(app: 0.5, master: 1) == 0.25)
+}

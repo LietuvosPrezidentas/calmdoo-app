@@ -43,12 +43,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.action = #selector(togglePanel)
         updateIcon()
 
+        #if BOOSTER_TEST_HOOKS
         DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("local.booster.command"), object: nil, queue: .main
         ) { [weak self] note in
             let command = note.object as? String ?? ""
             MainActor.assumeIsolated { self?.run(command) }
         }
+        #endif
     }
 
     @objc private func togglePanel() {
@@ -77,6 +79,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Test hook for the panel itself (tools/ctl.sh open | close | expand=<id> | expand= | snapshot)
 
+    #if BOOSTER_TEST_HOOKS
+
     private func run(_ command: String) {
         switch command {
         case "open": showPanel()
@@ -94,13 +98,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// so the layout can be checked without a screen recording permission.
     private func snapshot() {
         guard popover.isShown, let view = popover.contentViewController?.view else {
-            Log.write("snapshot: panel is not open")
+            Log.event("snapshot: panel is not open")
             return
         }
         view.layoutSubtreeIfNeeded()
         let fitting = (popover.contentViewController as? NSHostingController<MixerView>)?.sizeThatFits(in: CGSize(width: 330, height: 10_000))
         let window = view.window?.frame.size ?? .zero
-        Log.write("snapshot: popover \(Int(popover.contentSize.width))x\(Int(popover.contentSize.height)), window \(Int(window.width))x\(Int(window.height)), content wants \(Int(fitting?.width ?? 0))x\(Int(fitting?.height ?? 0))")
+        Log.event("snapshot: popover \(Int(popover.contentSize.width))x\(Int(popover.contentSize.height)), window \(Int(window.width))x\(Int(window.height)), content wants \(Int(fitting?.width ?? 0))x\(Int(fitting?.height ?? 0))")
         guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
         // The capture has no popover background, so white text would vanish: put the panel's own colour behind it.
@@ -116,4 +120,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let url = Log.url.deletingLastPathComponent().appending(path: "Booster-panel.png")
         try? out.representation(using: .png, properties: [:])?.write(to: url)
     }
+    #endif
 }

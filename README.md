@@ -18,14 +18,15 @@ Click the speaker icon in the menu bar. Apps show up once they play sound.
 ## Build
 
 ```bash
-./build.sh install    # builds, copies to ~/Applications/Booster.app, starts it
-swift test            # gain and limiter tests
+./build.sh install                 # builds, copies to ~/Applications/Booster.app, starts it
+./build.sh install --test-hooks    # test build: obeys tools/ctl.sh, logs every event. Never share it.
+swift test                         # engine tests
 ```
 
-The first start asks for **System Audio Recording** permission. The app is signed ad hoc with a
-requirement on its identifier (`local.booster.Booster`), so the permission survives rebuilds. If it
-ever stops working: System Settings → Privacy & Security → Screen & System Audio Recording → turn
-Booster off and on.
+The first start asks for **System Audio Recording** permission. The app is signed ad hoc with the
+default requirement and hardened runtime, so the permission is pinned to that exact build: macOS asks
+again after every rebuild. A public release needs a Developer ID signature and notarization. Security
+review and status: `SECURITY.md`.
 
 ## How it works
 
@@ -45,10 +46,16 @@ grow when an app's EQ opened.
 Helper processes are grouped under their app with the system's "responsible process" lookup:
 Safari plays through `com.apple.WebKit.GPU`, Chrome through `com.google.Chrome.helper`.
 
-If Booster quits or crashes, macOS removes its taps and every app plays normally again.
+If Booster quits or crashes, every app plays at its own normal volume again, because macOS removes a
+private tap and device along with the process that made them (inferred from Apple's header comments,
+not documented `[unverified]`). A turned-down app jumps back to full volume when that happens.
 
-## Testing without clicking
+If Booster cannot positively find the app's sound among the device's inputs, and confirm the
+device's own inputs are off, it refuses to start the tap and shows an error instead.
 
+## Testing without clicking (test builds only)
+
+These work only with `./build.sh install --test-hooks`; release builds do not listen.
 `tools/ctl.sh dump`, `tools/ctl.sh debug=on`, `tools/ctl.sh com.apple.Safari=0.5`,
 `tools/ctl.sh comp=com.apple.Safari:strong`, `tools/ctl.sh eq=com.apple.Safari:6,0,0,0,-3`,
 `tools/ctl.sh open`, `tools/ctl.sh expand=com.apple.Safari`, `tools/ctl.sh snapshot` (logs the panel's
@@ -62,3 +69,7 @@ Output goes to `~/Library/Logs/Booster.log`.
 - When an app starts playing from silence, the first fraction of a second can be at its normal
   level before Booster takes over. Paused apps stay held for 30 seconds to avoid this on resume.
 - Taking over an app adds a few milliseconds of delay.
+- App volume times "Boost everything" is capped at 400% in total.
+- When the output device changes, boosts above 100% go back to 100% (turned-down apps stay down),
+  so a boost meant for quiet speakers never lands in headphones.
+- Release builds log problems only, never which apps played.

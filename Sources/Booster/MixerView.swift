@@ -15,6 +15,9 @@ struct MixerView: View {
             masterRow
             Divider().padding(.vertical, 10)
             apps
+            if let notice = mixer.notice {
+                Text(notice).font(.caption).foregroundStyle(.orange).padding(.top, 8)
+            }
             if let problem = mixer.problem {
                 Text(problem).font(.caption).foregroundStyle(.red).padding(.top, 8)
             }
@@ -96,7 +99,7 @@ struct MixerView: View {
                     do {
                         if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
                     } catch {
-                        Log.write("open at login: \(error)")
+                        Log.error("open at login: \(error)")
                     }
                     let actual = SMAppService.mainApp.status == .enabled
                     if actual != on { opensAtLogin = actual }
@@ -291,4 +294,6 @@ private struct VerticalSlider: View {
     }
 }
 
-private func percent(_ volume: Double) -> String { "\(Int((volume * 100).rounded()))%" }
+private func percent(_ volume: Double) -> String {
+    volume.isFinite ? "\(Int((volume * 100).rounded()))%" : "100%"
+}

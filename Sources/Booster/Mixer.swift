@@ -21,6 +21,8 @@ final class Mixer {
     private(set) var permission: AudioPermission.Status = .unknown
     private(set) var outputName = ""
     private(set) var problem: String?
+    /// A one-off note for the panel, like "boosts were reset".
+    private(set) var notice: String?
     private(set) var volumes: [String: Double] = [:]
     private(set) var muted: Set<String> = []
     private(set) var effects: [String: EffectSettings] = [:]
@@ -40,9 +42,12 @@ final class Mixer {
     @ObservationIgnored private var failedAt: [String: Date] = [:]
     @ObservationIgnored private var watched: Set<AudioObjectID> = []
     @ObservationIgnored private var outputUID: String?
+    @ObservationIgnored private var lastKnownOutput: String?
     @ObservationIgnored private var refreshQueued = false
-    @ObservationIgnored private var debugLog = false
     @ObservationIgnored private var timer: Timer?
+    #if BOOSTER_TEST_HOOKS
+    @ObservationIgnored private var debugLog = false
+    #endif
 
     /// How long a paused app keeps its tap, so pressing play again does not blast at full volume.
     private let pauseGrace: TimeInterval = 30
@@ -50,7 +55,7 @@ final class Mixer {
     init() {
         master = Self.clampMaster(defaults.object(forKey: "master") as? Double ?? 1)
         for (key, value) in defaults.dictionaryRepresentation() {
-            if key.hasPrefix("volume."), let v = value as? Double { volumes[String(key.dropFirst(7))] = v }
+            if key.hasPrefix("volume."), let v = value as? Double, v.isFinite { volumes[String(key.dropFirst(7))] = GainCurve.snap(v) }
             if key.hasPrefix("muted."), (value as? Bool) == true { muted.insert(String(key.dropFirst(6))) }
             if key.hasPrefix("eq."), let bands = value as? [Double] {
                 effects[String(key.dropFirst(3)), default: .neutral].eq = EffectSettings(eq: bands).eq
@@ -60,11 +65,12 @@ final class Mixer {
             }
         }
         permission = AudioPermission.status()
-        Log.write("start: permission \(permission), master \(master), \(volumes.count) saved volumes")
+        Log.event("start: permission \(permission), master \(master), \(volumes.count) saved volumes")
         if permission != .granted {
             AudioPermission.request { [weak self] granted in
                 MainActor.assumeIsolated {
-                    Log.write("permission answer: \(granted)")
+                    Log.event("permission answer: \(granted)")
+                    if !granted { Log.error("audio permission refused") }
                     self?.permission = granted ? .granted : AudioPermission.status()
                     self?.refresh()
                 }
@@ -79,6 +85,7 @@ final class Mixer {
     func volume(_ id: String) -> Double { volumes[id] ?? 1 }
 
     func setMaster(_ value: Double) {
+        notice = nil
         master = Self.clampMaster(value)
         defaults.set(master, forKey: "master")
         reconcile()
@@ -86,7 +93,13 @@ final class Mixer {
 
     private static func clampMaster(_ value: Double) -> Double { min(max(GainCurve.snap(value), 1), GainCurve.maxVolume) }
 
+    /// Settings are only kept for apps that have actually played, so nothing can fill the
+    /// settings file with made-up names.
+    private func isKnown(_ id: String) -> Bool { lastPlaying[id] != nil }
+
     func setVolume(_ value: Double, for id: String) {
+        guard isKnown(id) else { return }
+        notice = nil
         let v = GainCurve.snap(value)
         volumes[id] = v
         defaults.set(v, forKey: "volume." + id)
@@ -96,6 +109,7 @@ final class Mixer {
     func isMuted(_ id: String) -> Bool { muted.contains(id) }
 
     func toggleMute(_ id: String) {
+        guard isKnown(id) else { return }
         if muted.contains(id) { muted.remove(id) } else { muted.insert(id) }
         defaults.set(muted.contains(id), forKey: "muted." + id)
         reconcile()
@@ -104,6 +118,7 @@ final class Mixer {
     func effects(_ id: String) -> EffectSettings { effects[id] ?? .neutral }
 
     func setEffects(_ settings: EffectSettings, for id: String) {
+        guard isKnown(id) else { return }
         let s = EffectSettings(eq: settings.eq, compression: settings.compression) // clamps and rounds
         effects[id] = s
         if s.eq.allSatisfy({ $0 == 0 }) { defaults.removeObject(forKey: "eq." + id) } else { defaults.set(s.eq, forKey: "eq." + id) }
@@ -127,7 +142,7 @@ final class Mixer {
 
     private func gain(_ key: String) -> Float {
         if muted.contains(key) { return 0 }
-        return GainCurve.gain(volume: volume(key)) * GainCurve.gain(volume: master)
+        return GainCurve.combined(app: volume(key), master: master)
     }
 
     // MARK: - Watching Core Audio
@@ -144,12 +159,14 @@ final class Mixer {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
         }
+        #if BOOSTER_TEST_HOOKS
         DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("local.booster.command"), object: nil, queue: .main
         ) { [weak self] note in
             let command = note.object as? String ?? ""
             MainActor.assumeIsolated { self?.run(command) }
         }
+        #endif
     }
 
     /// One listener per process, so pressing play is noticed within milliseconds, not at the next tick.
@@ -179,15 +196,17 @@ final class Mixer {
     private func tick() {
         if permission != .granted {
             let now = AudioPermission.status()
-            if now != permission { permission = now; Log.write("permission now \(now)") }
+            if now != permission { permission = now; Log.event("permission now \(now)") }
         }
         refresh()
+        #if BOOSTER_TEST_HOOKS
         if debugLog {
             for (key, tap) in taps.sorted(by: { $0.key < $1.key }) {
                 let peaks = tap.processor.takePeaks()
-                Log.write(String(format: "level %@ gain %.3f in %.3f out %.3f", key, tap.processor.gain, peaks.input, peaks.output))
+                Log.event(String(format: "level %@ gain %.3f in %.3f out %.3f", key, tap.processor.gain, peaks.input, peaks.output))
             }
         }
+        #endif
     }
 
     // MARK: - Scan and reconcile
@@ -223,10 +242,31 @@ final class Mixer {
 
         let device = OutputDevice.defaultID()
         let uid = device.flatMap(OutputDevice.uid)
-        if uid != outputUID { Log.write("output device: \(uid ?? "none")") }
+        if uid != outputUID { Log.event("output device: \(uid ?? "none")") }
         outputUID = uid
+        if let uid {
+            if let previous = lastKnownOutput, previous != uid { outputChanged() }
+            lastKnownOutput = uid
+        }
         let name = device.flatMap(OutputDevice.name) ?? "No output"
         if name != outputName { outputName = name }
+    }
+
+    /// A boost set for quiet laptop speakers must not land in a pair of AirPods. When the output
+    /// switches, anything above 100% goes back to 100%. Turned-down apps stay turned down.
+    private func outputChanged() {
+        var reset = false
+        for (id, v) in volumes where v > 1 {
+            volumes[id] = 1
+            defaults.set(1.0, forKey: "volume." + id)
+            reset = true
+        }
+        if master > 1 {
+            master = 1
+            defaults.set(1.0, forKey: "master")
+            reset = true
+        }
+        if reset { notice = "Output changed, so boosts went back to 100%." }
     }
 
     private func reconcile() {
@@ -256,13 +296,13 @@ final class Mixer {
             if needed && now.timeIntervalSince(failedAt[key] ?? .distantPast) > 10 {
                 do {
                     taps[key] = try AppTap.make(processObjects: group.objects, outputUID: output, gain: g, settings: fx)
-                    Log.write("tap \(key) on \(output), \(group.objects.count) processes, gain \(g), eq \(fx.eq), comp \(fx.compression); inputs: \(taps[key]?.diagnostics ?? "")")
+                    Log.event("tap \(key) on \(output), \(group.objects.count) processes, gain \(g), eq \(fx.eq), comp \(fx.compression); inputs: \(taps[key]?.diagnostics ?? "")")
                     failedAt[key] = nil
                     if problem != nil { problem = nil }
                 } catch {
                     failedAt[key] = now
                     problem = "Couldn't change \(group.identity.name): \(error)"
-                    Log.write("tap failed \(key): \(error)")
+                    Log.error("could not change \(group.identity.name): \(error)")
                 }
             }
         }
@@ -272,7 +312,7 @@ final class Mixer {
     private func drop(_ key: String, reason: String) {
         taps[key]?.invalidate()
         taps[key] = nil
-        Log.write("untap \(key): \(reason)")
+        Log.event("untap \(key): \(reason)")
     }
 
     // MARK: - Naming apps
@@ -301,18 +341,21 @@ final class Mixer {
         name.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\u{200E}\u{200F}")))
     }
 
-    // MARK: - Test hook
+    // MARK: - Test hook (test builds only: ./build.sh --test-hooks)
 
+    #if BOOSTER_TEST_HOOKS
     /// Commands from tools/ctl.sh, for testing without clicking:
     /// "dump", "debug=on", "debug=off", "master=2", "<bundle id>=0.5", "mute=<bundle id>",
-    /// "comp=<bundle id>:strong", "eq=<bundle id>:6,0,0,0,-3".
+    /// "comp=<bundle id>:strong", "eq=<bundle id>:6,0,0,0,-3", "output-changed".
+    /// Anything on the Mac can send these, which is why release builds do not listen.
     private func run(_ command: String) {
-        Log.write("command: \(command)")
+        Log.event("command: \(command)")
+        if command == "output-changed" { outputChanged(); reconcile(); return }
         if command == "dump" {
             for (key, group) in groups.sorted(by: { $0.key < $1.key }) where lastPlaying[key] != nil {
-                Log.write("app \(key) \"\(group.identity.name)\" playing=\(group.playing) processes=\(group.objects.sorted()) volume=\(volume(key)) muted=\(isMuted(key)) eq=\(effects(key).eq) comp=\(effects(key).compression) tapped=\(taps[key] != nil)")
+                Log.event("app \(key) \"\(group.identity.name)\" playing=\(group.playing) processes=\(group.objects.sorted()) volume=\(volume(key)) muted=\(isMuted(key)) eq=\(effects(key).eq) comp=\(effects(key).compression) tapped=\(taps[key] != nil)")
             }
-            Log.write("permission=\(permission) output=\(outputUID ?? "none") master=\(master) taps=\(taps.keys.sorted())")
+            Log.event("permission=\(permission) output=\(outputUID ?? "none") master=\(master) taps=\(taps.keys.sorted()) notice=\(notice ?? "none")")
             return
         }
         let parts = command.split(separator: "=", maxSplits: 1).map(String.init)
@@ -334,4 +377,5 @@ final class Mixer {
         default: if let v = Double(parts[1]) { setVolume(v, for: parts[0]) }
         }
     }
+    #endif
 }

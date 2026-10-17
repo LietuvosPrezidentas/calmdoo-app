@@ -1,18 +1,20 @@
 import Foundation
 
-/// Appends to ~/Library/Logs/Booster.log (readable in Console.app). Main thread only.
+/// ~/Library/Logs/Booster.log (readable in Console.app). Main thread only.
+///
+/// Release builds write problems only. Events (which app was tapped, when, on which device) add up to
+/// a listening history, so they are written only in test builds (`./build.sh --test-hooks`).
 enum Log {
     static let url = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library/Logs/Booster.log")
 
+    private static let limit = 1_000_000
+    private static var written = 0
+
     private static let handle: FileHandle? = {
         let fm = FileManager.default
-        // Start fresh once the log passes 1 MB.
-        if let size = try? fm.attributesOfItem(atPath: url.path)[.size] as? Int, size > 1_000_000 {
-            try? fm.removeItem(at: url)
-        }
         if !fm.fileExists(atPath: url.path) { fm.createFile(atPath: url.path, contents: nil) }
         let h = try? FileHandle(forWritingTo: url)
-        _ = try? h?.seekToEnd()
+        written = Int((try? h?.seekToEnd()) ?? 0)
         return h
     }()
 
@@ -22,8 +24,27 @@ enum Log {
         return f
     }()
 
-    static func write(_ message: String) {
-        let line = "\(time.string(from: Date())) \(message)\n"
-        handle?.write(Data(line.utf8))
+    static func error(_ message: String) {
+        write("problem: " + message)
+    }
+
+    static func event(_ message: @autoclosure () -> String) {
+        #if BOOSTER_TEST_HOOKS
+        write(message())
+        #endif
+    }
+
+    private static func write(_ message: String) {
+        guard let handle else { return }
+        // One line per entry, bounded: names and errors come from other processes, and a newline
+        // in one would let it write fake lines.
+        let clean = String(message.map { $0.isNewline ? " " : $0 }.prefix(400))
+        let data = Data("\(time.string(from: Date())) \(clean)\n".utf8)
+        if written + data.count > limit {
+            try? handle.truncate(atOffset: 0)
+            written = 0
+        }
+        handle.write(data)
+        written += data.count
     }
 }

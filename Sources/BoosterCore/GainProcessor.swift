@@ -26,6 +26,7 @@ public final class GainProcessor: @unchecked Sendable {
     private var compressor = Compressor()
 
     public init(sampleRate: Double, gain: Float, settings: EffectSettings = .neutral) {
+        let gain = Self.safe(gain)
         targetBits = Atomic(gain.bitPattern)
         settingsBits = Atomic(settings.packed)
         appliedSettings = settings.packed
@@ -40,8 +41,11 @@ public final class GainProcessor: @unchecked Sendable {
     /// The gain the audio thread moves towards. Changes are ramped over one buffer, so no clicks.
     public var gain: Float {
         get { Float(bitPattern: targetBits.load(ordering: .relaxed)) }
-        set { targetBits.store(newValue.bitPattern, ordering: .relaxed) }
+        set { targetBits.store(Self.safe(newValue).bitPattern, ordering: .relaxed) }
     }
+
+    /// A gain that is not a real number becomes 1 (no change); anything else is held to 0...16.
+    private static func safe(_ g: Float) -> Float { g.isFinite ? min(max(g, 0), 16) : 1 }
 
     /// EQ and compressor. Picked up by the audio thread at the start of the next buffer.
     public var settings: EffectSettings {
