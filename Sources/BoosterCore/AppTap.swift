@@ -44,7 +44,7 @@ public final class AppTap {
                             settings: EffectSettings) throws -> AppTap {
         let description = CATapDescription(stereoMixdownOfProcesses: Array(processObjects))
         description.uuid = UUID()
-        description.name = "Booster"
+        description.name = "calmdoo"
         description.isPrivate = true
         description.muteBehavior = .mutedWhenTapped
 
@@ -53,8 +53,8 @@ public final class AppTap {
         guard status == noErr else { throw TapError.createTap(status) }
 
         let aggregate: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "Booster",
-            kAudioAggregateDeviceUIDKey: "booster-" + UUID().uuidString,
+            kAudioAggregateDeviceNameKey: "calmdoo",
+            kAudioAggregateDeviceUIDKey: "calmdoo-" + UUID().uuidString,
             kAudioAggregateDeviceMainSubDeviceKey: outputUID,
             kAudioAggregateDeviceIsPrivateKey: true,
             kAudioAggregateDeviceIsStackedKey: false,

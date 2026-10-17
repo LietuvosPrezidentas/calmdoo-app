@@ -45,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         #if BOOSTER_TEST_HOOKS
         DistributedNotificationCenter.default().addObserver(
-            forName: Notification.Name("local.booster.command"), object: nil, queue: .main
+            forName: Notification.Name("com.calmdoo.command"), object: nil, queue: .main
         ) { [weak self] note in
             let command = note.object as? String ?? ""
             MainActor.assumeIsolated { self?.run(command) }
@@ -72,7 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.updateIcon() } }
         }
         let image = NSImage(systemSymbolName: boosted ? "speaker.wave.3.fill" : "speaker.wave.2.fill",
-                            accessibilityDescription: "Booster")
+                            accessibilityDescription: "calmdoo")
         image?.isTemplate = true
         statusItem.button?.image = image
     }
@@ -94,7 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Saves a picture of the open panel to ~/Library/Logs/Booster-panel.png and logs its size,
+    /// Saves a picture of the open panel to ~/Library/Logs/calmdoo-panel.png and logs its size,
     /// so the layout can be checked without a screen recording permission.
     private func snapshot() {
         guard popover.isShown, let view = popover.contentViewController?.view else {
@@ -117,7 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rep.draw(in: NSRect(origin: .zero, size: view.bounds.size))
         image.unlockFocus()
         guard let tiff = image.tiffRepresentation, let out = NSBitmapImageRep(data: tiff) else { return }
-        let url = Log.url.deletingLastPathComponent().appending(path: "Booster-panel.png")
+        let url = Log.url.deletingLastPathComponent().appending(path: "calmdoo-panel.png")
         try? out.representation(using: .png, properties: [:])?.write(to: url)
     }
     #endif

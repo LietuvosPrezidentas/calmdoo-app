@@ -1,4 +1,7 @@
-# Booster
+# calmdoo
+
+Called Booster until 2026-10-18. The Swift package, this folder and the module names still say
+Booster; everything a user sees (app name, ID `com.calmdoo.app`, menu, permission prompt, website) says calmdoo.
 
 A menu bar app for macOS 15+: one volume slider per app (Safari at 40%, Chrome at 100%),
 boost up to 400%, and a "Boost everything" slider on top. Each app also gets its own 5-band EQ and a
@@ -18,15 +21,23 @@ Click the speaker icon in the menu bar. Apps show up once they play sound.
 ## Build
 
 ```bash
-./build.sh install                 # builds, copies to ~/Applications/Booster.app, starts it
+./build.sh install                 # builds, copies to ~/Applications/calmdoo.app, starts it
 ./build.sh install --test-hooks    # test build: obeys tools/ctl.sh, logs every event. Never share it.
 swift test                         # engine tests
 ```
 
 The first start asks for **System Audio Recording** permission. The app is signed ad hoc with the
-default requirement and hardened runtime, so the permission is pinned to that exact build: macOS asks
+default requirement and hardened runtime under the ID `com.calmdoo.app`, so the permission is pinned to that exact build: macOS asks
 again after every rebuild. A public release needs a Developer ID signature and notarization. Security
 review and status: `SECURITY.md`.
+
+## Website
+
+`site/index.html` is the one-page download site: a single self-contained file (fonts from Google Fonts),
+ready for any static host. The download buttons stay inactive until `DOWNLOAD_URL` near the top of
+its script is set to the hosted release; until then they show "The download opens with the first
+public release". Only set it for a Developer ID signed, notarized build. Local preview: the
+`booster-site` entry in `~/Money/.claude/launch.json` serves it at http://localhost:8781.
 
 ## How it works
 
@@ -59,8 +70,8 @@ These work only with `./build.sh install --test-hooks`; release builds do not li
 `tools/ctl.sh dump`, `tools/ctl.sh debug=on`, `tools/ctl.sh com.apple.Safari=0.5`,
 `tools/ctl.sh comp=com.apple.Safari:strong`, `tools/ctl.sh eq=com.apple.Safari:6,0,0,0,-3`,
 `tools/ctl.sh open`, `tools/ctl.sh expand=com.apple.Safari`, `tools/ctl.sh snapshot` (logs the panel's
-size and saves `~/Library/Logs/Booster-panel.png`; its text comes out invisible, the layout is right).
-Output goes to `~/Library/Logs/Booster.log`.
+size and saves `~/Library/Logs/calmdoo-panel.png`; its text comes out invisible, the layout is right).
+Output goes to `~/Library/Logs/calmdoo.log`.
 
 ## Known limits
 

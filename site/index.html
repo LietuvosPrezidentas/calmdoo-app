@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>calmdoo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="calmdoo is a menu bar app for macOS that gives every app its own volume, boosts quiet apps up to 400%, and adds an EQ and a compressor per app.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..700&family=Martian+Mono:wdth,wght@75..112.5,400..600&family=Mona+Sans:wdth,wght@75..125,500..900&display=swap">
+<style>
+/* Layout: three calm bands. Hero = headline left, the live calmdoo panel right on a soft glow;
+   then three short features, one trust line, and the download band. Orange only where sound is boosted. */
+:root {
+  --bg: #F6F7F9;
+  --surface: #FFFFFF;
+  --ink: #0E1116;
+  --muted: #5E6673;
+  --line: #E2E5EA;
+  --track: #DADEE4;
+  --knob: #FFFFFF;
+  --cool: #2F6FE4;
+  --hot: #FF5A1F;
+  --hot-ink: #C2410C;
+  --ok: #22A35A;
+  --t1: #3A8DF5;
+  --t2: #2DB560;
+  --t3: #E8B21C;
+  --glow: rgba(255, 90, 31, 0.16);
+  --shadow: 0 30px 60px -30px rgba(14, 17, 22, 0.35), 0 2px 6px rgba(14, 17, 22, 0.06);
+  --display: "Mona Sans", "Helvetica Neue", Arial, sans-serif;
+  --body: "Hanken Grotesk", -apple-system, "Segoe UI", sans-serif;
+  --mono: "Martian Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B0C0F; --surface: #16181D; --ink: #F1F3F6; --muted: #9AA3AF; --line: #24272E; --track: #2E333C; --knob: #EEF1F5;
+    --cool: #5C8EFF; --hot: #FF7438; --hot-ink: #FF9A66; --ok: #3CCB74; --glow: rgba(255, 116, 56, 0.2);
+    --shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B0C0F; --surface: #16181D; --ink: #F1F3F6; --muted: #9AA3AF; --line: #24272E; --track: #2E333C; --knob: #EEF1F5;
+  --cool: #5C8EFF; --hot: #FF7438; --hot-ink: #FF9A66; --ok: #3CCB74; --glow: rgba(255, 116, 56, 0.2);
+  --shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--cool); outline-offset: 3px; border-radius: 8px; }
+svg { display: block; }
+.display { font-family: var(--display); font-stretch: 110%; letter-spacing: -0.03em; text-wrap: balance; }
+
+/* nav */
+.nav { display: flex; align-items: center; justify-content: space-between; padding-block: 22px; }
+.mark { display: flex; align-items: center; gap: 9px; text-decoration: none; font-family: var(--display); font-stretch: 112%; font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
+.mark svg { width: 24px; height: 24px; color: var(--hot); }
+.nav-link { font-weight: 600; font-size: 15px; text-decoration: none; padding: 8px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.nav-link:hover { border-color: var(--muted); }
+
+/* hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: 72px; align-items: center; padding-block: 48px 104px; }
+.hero h1 { font-weight: 760; font-size: clamp(2.8rem, 6.4vw, 5.2rem); line-height: 0.98; margin: 0 0 24px; }
+.hero h1 span { color: var(--hot); }
+.sub { font-size: 1.22rem; color: var(--muted); max-width: 33ch; margin: 0 0 34px; }
+.cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
+.btn { display: inline-flex; align-items: center; gap: 10px; background: var(--ink); color: var(--bg); text-decoration: none; font-weight: 700; font-size: 16px; padding: 15px 26px; border-radius: 999px; transition: transform .15s ease, opacity .15s ease; }
+.btn:hover { transform: translateY(-1px); }
+.btn svg { width: 18px; height: 18px; }
+.meta { font-size: 14.5px; color: var(--muted); }
+
+/* the live panel */
+.stage { position: relative; min-width: 0; }
+.stage::before { content: ""; position: absolute; inset: -18% -14%; background: radial-gradient(closest-side, var(--glow), transparent); pointer-events: none; }
+.mbar { position: relative; display: flex; justify-content: flex-end; align-items: center; gap: 14px; padding: 0 10px 10px; font-weight: 600; font-size: 13px; color: var(--muted); }
+.mbar .ours { color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 3px 7px; }
+.mbar svg { width: 16px; height: 16px; }
+.panel { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 16px 16px 14px; }
+.ph { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.ph b { font-size: 15px; }
+.ph span { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.line1 { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 14px; }
+.sep { height: 1px; background: var(--line); margin: 14px 0; }
+.rows { display: grid; gap: 14px; }
+.row { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: center; }
+.tile { width: 30px; height: 30px; border-radius: 8px; background: var(--tint); color: #FFFFFF; display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+.row-top { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+.dot.off { visibility: hidden; }
+.pct { margin-left: auto; background: none; border: 0; padding: 0 2px; font-family: var(--mono); font-stretch: 87.5%; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums; }
+.pct.boost, .pct.muted { color: var(--hot-ink); }
+.row-ctl { display: flex; align-items: center; gap: 8px; }
+.mute { background: none; border: 0; padding: 2px; color: var(--muted); cursor: pointer; flex: none; }
+.mute svg { width: 17px; height: 17px; }
+.mute[aria-pressed="true"] { color: var(--hot-ink); }
+.hint { position: relative; font-size: 14px; color: var(--muted); margin: 14px 4px 0; }
+
+/* sliders */
+.range { position: relative; flex: 1; min-width: 0; }
+.range.center::after { content: ""; position: absolute; left: calc(50% - 1px); top: 50%; width: 2px; height: 10px; margin-top: -5px; background: var(--track); border-radius: 1px; pointer-events: none; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; margin: 0; cursor: pointer; --p: 50%; --fill: var(--cool); position: relative; z-index: 1; }
+input[type="range"].hot { --fill: var(--hot); }
+input[type="range"]:disabled { opacity: .45; cursor: default; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(to right, var(--fill) 0 var(--p), var(--track) var(--p) 100%); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 4px; background: var(--track); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--fill); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: var(--knob); border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(14, 17, 22, 0.2); }
+input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--knob); border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(14, 17, 22, 0.2); }
+
+/* features */
+.features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 48px; padding-block: 80px; border-top: 1px solid var(--line); }
+.feature { min-width: 0; }
+.feature svg { width: 120px; height: 48px; margin-bottom: 22px; }
+.feature h3 { font-family: var(--display); font-stretch: 106%; font-weight: 700; font-size: 1.35rem; letter-spacing: -0.02em; margin: 0 0 8px; }
+.feature p { color: var(--muted); margin: 0; max-width: 30ch; }
+.s-cool { fill: var(--cool); }
+.s-hot { fill: var(--hot); }
+.s-faint { fill: var(--track); }
+.s-dash { stroke: var(--muted); stroke-dasharray: 3 3; stroke-width: 1; opacity: .6; }
+.s-line { stroke: var(--cool); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+.s-knob { fill: var(--surface); stroke: var(--cool); stroke-width: 2; }
+
+/* trust line */
+.trust { display: flex; flex-wrap: wrap; gap: 12px 32px; padding-block: 0 80px; font-weight: 600; color: var(--muted); }
+.trust span { display: flex; align-items: center; gap: 8px; }
+.trust svg { width: 18px; height: 18px; color: var(--ok); }
+
+/* download band */
+.cta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 48px; align-items: center; background: var(--ink); color: var(--bg); border-radius: 28px; padding: 56px clamp(24px, 6vw, 72px); }
+.cta h2 { font-weight: 760; font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1; margin: 0 0 14px; }
+.cta p { margin: 0; opacity: .72; max-width: 50ch; }
+.cta .btn { background: var(--hot); color: #FFFFFF; }
+.soon { margin-top: 12px; font-weight: 700; color: var(--hot); }
+
+footer { padding-block: 32px 44px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; gap: 48px; padding-block: 24px 72px; }
+  .stage { max-width: 420px; }
+  .features { grid-template-columns: 1fr; gap: 36px; padding-block: 56px; }
+  .cta { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <nav class="nav">
+    <a class="mark" href="#top" aria-label="calmdoo home">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9h4l5-4.2v14.4l-5-4.2h-4z" fill="currentColor"/><path d="M15.5 9.3a3.6 3.6 0 0 1 0 5.4M18 6.8a7.2 7.2 0 0 1 0 10.4M20.4 4.4a10.6 10.6 0 0 1 0 15.2" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/></svg>
+      calmdoo
+    </a>
+    <a class="nav-link" href="#get" data-download>Download</a>
+  </nav>
+
+  <main id="top" class="hero">
+    <div>
+      <h1 class="display">Every app gets its own <span>volume.</span></h1>
+      <p class="sub">Turn Safari down, keep Spotify up, and boost quiet videos to 400%. Right from your menu bar.</p>
+      <div class="cta-row">
+        <a class="btn" href="#get" data-download>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download for Mac
+        </a>
+        <span class="meta">macOS 15+ · Apple silicon · 712 KB</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="mbar" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M2.5 9.2a14 14 0 0 1 19 0M5.6 12.4a9.5 9.5 0 0 1 12.8 0M8.7 15.6a5 5 0 0 1 6.6 0" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg>
+        <span class="ours" id="barIcon"></span>
+        <span>Sat 9:41</span>
+      </div>
+      <div class="panel" aria-label="A working copy of the calmdoo panel">
+        <div class="ph"><b>calmdoo</b><span>MacBook Pro Speakers</span></div>
+        <div class="line1"><span>Boost everything</span><button class="pct" id="masterPct" type="button" title="Reset to 100%">100%</button></div>
+        <div class="range"><input id="master" type="range" class="hot" min="100" max="400" step="1" value="100" aria-label="Boost everything"></div>
+        <div class="sep"></div>
+        <div class="rows" id="rows"></div>
+      </div>
+      <p class="hint">Drag the sliders. The middle mark is 100%.</p>
+    </div>
+  </main>
+
+  <section class="features" aria-label="Features">
+    <div class="feature">
+      <svg viewBox="0 0 120 48" aria-hidden="true">
+        <line x1="0" y1="4.5" x2="120" y2="4.5" class="s-dash"/>
+        <rect x="1" y="34" width="10" height="12" rx="2" class="s-cool"/><rect x="18" y="28" width="10" height="18" rx="2" class="s-cool"/>
+        <rect x="35" y="21" width="10" height="25" rx="2" class="s-cool"/><rect x="52" y="14" width="10" height="32" rx="2" class="s-cool"/>
+        <rect x="69" y="7" width="10" height="39" rx="2" class="s-hot"/><rect x="86" y="7" width="10" height="39" rx="2" class="s-hot"/>
+        <rect x="103" y="7" width="10" height="39" rx="2" class="s-hot"/>
+      </svg>
+      <h3>Boost to 400%</h3>
+      <p>Up to +12 dB for quiet videos and weak laptop speakers. A limiter keeps it from crackling.</p>
+    </div>
+    <div class="feature">
+      <svg viewBox="0 0 120 48" aria-hidden="true">
+        <path d="M6 14 C 18 8, 26 10, 34 20 S 50 32, 62 30 S 86 26, 90 25 S 108 24, 114 22" class="s-line"/>
+        <circle cx="6" cy="14" r="4" class="s-knob"/><circle cx="34" cy="20" r="4" class="s-knob"/><circle cx="62" cy="30" r="4" class="s-knob"/>
+        <circle cx="90" cy="25" r="4" class="s-knob"/><circle cx="114" cy="22" r="4" class="s-knob"/>
+      </svg>
+      <h3>An EQ for each app</h3>
+      <p>Five bands, so music gets more bass and calls get clearer voices.</p>
+    </div>
+    <div class="feature">
+      <svg viewBox="0 0 120 48" aria-hidden="true">
+        <rect x="1" y="21" width="8" height="6" rx="2" class="s-faint"/><rect x="13" y="20" width="8" height="8" rx="2" class="s-faint"/><rect x="25" y="2" width="8" height="44" rx="2" class="s-faint"/><rect x="37" y="4" width="8" height="40" rx="2" class="s-faint"/><rect x="49" y="19" width="8" height="10" rx="2" class="s-faint"/><rect x="61" y="21" width="8" height="6" rx="2" class="s-faint"/><rect x="73" y="5" width="8" height="38" rx="2" class="s-faint"/><rect x="85" y="20" width="8" height="8" rx="2" class="s-faint"/><rect x="97" y="21" width="8" height="6" rx="2" class="s-faint"/><rect x="109" y="20" width="8" height="8" rx="2" class="s-faint"/>
+        <rect x="3" y="16" width="4" height="16" rx="2" class="s-cool"/><rect x="15" y="15" width="4" height="18" rx="2" class="s-cool"/><rect x="27" y="11" width="4" height="26" rx="2" class="s-cool"/><rect x="39" y="12" width="4" height="24" rx="2" class="s-cool"/><rect x="51" y="15" width="4" height="18" rx="2" class="s-cool"/><rect x="63" y="16" width="4" height="16" rx="2" class="s-cool"/><rect x="75" y="12" width="4" height="24" rx="2" class="s-cool"/><rect x="87" y="15" width="4" height="18" rx="2" class="s-cool"/><rect x="99" y="16" width="4" height="16" rx="2" class="s-cool"/><rect x="111" y="15" width="4" height="18" rx="2" class="s-cool"/>
+      </svg>
+      <h3>A compressor for films</h3>
+      <p>Quiet dialogue comes up, explosions come down. Off, Light or Strong.</p>
+    </div>
+  </section>
+
+  <div class="trust">
+    <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>No driver to install</span>
+    <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>No account</span>
+    <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Sound never leaves your Mac</span>
+    <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Boosts reset when you plug in headphones</span>
+  </div>
+
+  <section id="get" class="cta">
+    <div>
+      <h2 class="display">Get calmdoo</h2>
+      <p>On first launch, macOS asks once for System Audio Recording. That lets calmdoo change other apps' sound. Nothing is saved or sent.</p>
+      <p class="soon" id="soon" hidden>The download opens with the first public release.</p>
+    </div>
+    <a class="btn" href="#get" data-download>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Download for Mac
+    </a>
+  </section>
+
+  <footer>
+    <span>calmdoo 1.0</span>
+    <span>macOS 15 or later · Apple silicon</span>
+  </footer>
+</div>
+
+<script>
+// Set this to the hosted calmdoo.zip once a signed, notarized release exists.
+const DOWNLOAD_URL = "";
+
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const SPEAKER = (waves) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9h4l5-4.2v14.4l-5-4.2h-4z" fill="currentColor"/>${
+  waves >= 1 ? '<path d="M15.5 9.3a3.6 3.6 0 0 1 0 5.4" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/>' : ""}${
+  waves >= 2 ? '<path d="M18 6.8a7.2 7.2 0 0 1 0 10.4" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/>' : ""}${
+  waves >= 3 ? '<path d="M20.4 4.4a10.6 10.6 0 0 1 0 15.2" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/>' : ""}</svg>`;
+const MUTED = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9h4l5-4.2v14.4l-5-4.2h-4z" fill="currentColor"/><path d="m16 9.5 5 5m0-5-5 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>`;
+
+// Same maths as the app: 100% sits in the middle of each slider.
+const volumeAt = (p) => (p <= 0.5 ? p * 2 : 1 + (p - 0.5) * 6);
+const positionOf = (v) => (v <= 1 ? v / 2 : 0.5 + (v - 1) / 6);
+const snap = (v) => (Math.abs(v - 1) < 0.04 ? 1 : v);
+const pctText = (v) => Math.round(v * 100) + "%";
+
+const apps = [
+  { id: "safari", name: "Safari", tint: "var(--t1)", vol: 1, playing: true, muted: false },
+  { id: "spotify", name: "Spotify", tint: "var(--t2)", vol: 1, playing: true, muted: false },
+  { id: "chrome", name: "Chrome", tint: "var(--t3)", vol: 2.5, playing: false, muted: false },
+];
+let master = 1;
+
+const rowsEl = document.getElementById("rows");
+rowsEl.innerHTML = apps.map((a) => `
+  <div class="row" data-id="${a.id}">
+    <div class="tile" style="--tint:${a.tint}" aria-hidden="true">${a.name[0]}</div>
+    <div>
+      <div class="row-top"><span>${a.name}</span><span class="dot${a.playing ? "" : " off"}" title="Playing now"></span>
+        <button class="pct" type="button" title="Reset to 100%"></button></div>
+      <div class="row-ctl">
+        <button class="mute" type="button" aria-pressed="false" aria-label="Mute ${a.name}"></button>
+        <div class="range center"><input id="vol-${a.id}" type="range" min="0" max="1000" step="1" aria-label="${a.name} volume"></div>
+      </div>
+    </div>
+  </div>`).join("");
+
+function paintRange(input, fraction, hot) {
+  input.style.setProperty("--p", (fraction * 100).toFixed(2) + "%");
+  input.classList.toggle("hot", hot);
+}
+
+function renderApp(a) {
+  const row = rowsEl.querySelector(`[data-id="${a.id}"]`);
+  const input = row.querySelector("input"), pct = row.querySelector(".pct"), mute = row.querySelector(".mute");
+  input.value = Math.round(positionOf(a.vol) * 1000);
+  input.disabled = a.muted;
+  paintRange(input, positionOf(a.vol), a.vol > 1);
+  pct.textContent = a.muted ? "Muted" : pctText(a.vol);
+  pct.className = "pct" + (a.muted ? " muted" : a.vol > 1 ? " boost" : "");
+  mute.setAttribute("aria-pressed", String(a.muted));
+  mute.innerHTML = a.muted ? MUTED : SPEAKER(a.vol === 0 ? 0 : a.vol < 0.5 ? 1 : a.vol <= 1 ? 2 : 3);
+}
+
+function renderMaster() {
+  const m = document.getElementById("master");
+  m.value = Math.round(master * 100);
+  paintRange(m, (master - 1) / 3, true);
+  const pct = document.getElementById("masterPct");
+  pct.textContent = pctText(master);
+  pct.className = "pct" + (master > 1 ? " boost" : "");
+  document.getElementById("barIcon").innerHTML = SPEAKER(master > 1 ? 3 : 2);
+}
+
+apps.forEach((a) => {
+  const row = rowsEl.querySelector(`[data-id="${a.id}"]`);
+  row.querySelector("input").addEventListener("input", (e) => { a.vol = snap(volumeAt(e.target.value / 1000)); renderApp(a); });
+  row.querySelector(".pct").addEventListener("click", () => { a.vol = 1; a.muted = false; renderApp(a); });
+  row.querySelector(".mute").addEventListener("click", () => { a.muted = !a.muted; renderApp(a); });
+  renderApp(a);
+});
+document.getElementById("master").addEventListener("input", (e) => { master = snap(e.target.value / 100); renderMaster(); });
+document.getElementById("masterPct").addEventListener("click", () => { master = 1; renderMaster(); });
+renderMaster();
+
+// One small moment on load: Safari slides down to 40%, the way you'd use it.
+(function intro() {
+  const safari = apps[0];
+  if (reduceMotion) { safari.vol = 0.4; renderApp(safari); return; }
+  const from = positionOf(1), to = positionOf(0.4), start = performance.now() + 700, dur = 900;
+  function step(now) {
+    const t = Math.min(Math.max((now - start) / dur, 0), 1);
+    const e = 1 - Math.pow(1 - t, 3);
+    safari.vol = t === 1 ? 0.4 : snap(volumeAt(from + (to - from) * e));
+    renderApp(safari);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+})();
+
+document.querySelectorAll("[data-download]").forEach((a) => {
+  if (DOWNLOAD_URL) { a.href = DOWNLOAD_URL; return; }
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("soon").hidden = false;
+    document.getElementById("get").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+  });
+});
+</script>
+</body>
+</html>

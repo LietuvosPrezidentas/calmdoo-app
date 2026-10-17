@@ -3,19 +3,19 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>local.booster.Booster</string>
+	<string>com.calmdoo.app</string>
 	<key>CFBundleName</key>
-	<string>Booster</string>
+	<string>calmdoo</string>
 	<key>CFBundleDisplayName</key>
-	<string>Booster</string>
+	<string>calmdoo</string>
 	<key>CFBundleExecutable</key>
-	<string>Booster</string>
+	<string>calmdoo</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>3</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
@@ -23,6 +23,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>Booster changes each app's volume by passing that app's sound through itself. Nothing is recorded or saved.</string>
+	<string>calmdoo changes each app's volume by passing that app's sound through itself. Nothing is recorded or saved.</string>
 </dict>
 </plist>

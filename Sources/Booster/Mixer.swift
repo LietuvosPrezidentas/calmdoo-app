@@ -161,7 +161,7 @@ final class Mixer {
         }
         #if BOOSTER_TEST_HOOKS
         DistributedNotificationCenter.default().addObserver(
-            forName: Notification.Name("local.booster.command"), object: nil, queue: .main
+            forName: Notification.Name("com.calmdoo.command"), object: nil, queue: .main
         ) { [weak self] note in
             let command = note.object as? String ?? ""
             MainActor.assumeIsolated { self?.run(command) }

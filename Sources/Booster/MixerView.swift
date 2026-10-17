@@ -30,7 +30,7 @@ struct MixerView: View {
 
     private var header: some View {
         HStack {
-            Text("Booster").font(.system(size: 15, weight: .bold))
+            Text("calmdoo").font(.system(size: 15, weight: .bold))
             Spacer()
             Label(mixer.outputName, systemImage: "hifispeaker.fill")
                 .font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -40,9 +40,9 @@ struct MixerView: View {
 
     private var permissionBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Booster needs one permission to change app volumes.")
+            Text("calmdoo needs one permission to change app volumes.")
                 .font(.callout.weight(.medium))
-            Text("System Settings → Privacy & Security → Screen & System Audio Recording → turn on Booster under “System Audio Recording Only”.")
+            Text("System Settings → Privacy & Security → Screen & System Audio Recording → turn on calmdoo under “System Audio Recording Only”.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button("Open Settings") { mixer.askForPermission() }.controlSize(.small)
         }

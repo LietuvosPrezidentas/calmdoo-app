@@ -1,11 +1,11 @@
 import Foundation
 
-/// ~/Library/Logs/Booster.log (readable in Console.app). Main thread only.
+/// ~/Library/Logs/calmdoo.log (readable in Console.app). Main thread only.
 ///
 /// Release builds write problems only. Events (which app was tapped, when, on which device) add up to
 /// a listening history, so they are written only in test builds (`./build.sh --test-hooks`).
 enum Log {
-    static let url = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library/Logs/Booster.log")
+    static let url = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library/Logs/calmdoo.log")
 
     private static let limit = 1_000_000
     private static var written = 0

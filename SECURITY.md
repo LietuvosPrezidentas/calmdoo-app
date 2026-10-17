@@ -109,7 +109,7 @@ Any sender over finding 2's channel can create unlimited `volume.<anything>` key
   rule out the Mac App Store and can break in any macOS update. If they disappear, Booster fails safe:
   no permission means no taps, and no responsibility lookup means helpers are listed on their own.
 - Without Developer ID signing and notarization, Gatekeeper blocks the app for anyone who downloads it.
-- The bundle ID `local.booster.Booster` should become reverse-DNS on a domain you own.
+- ~~The bundle ID `local.booster.Booster` should become reverse-DNS on a domain you own.~~ Done 2026-10-18: the app is calmdoo, ID `com.calmdoo.app` (calmdoo.com is owned). The new ID got its own permission entry, pinned to the build. The old `local.booster.Booster` entry is pinned to an old build that is now in the Trash, so nothing can use it; `tccutil reset AudioCapture local.booster.Booster` clears it.
 - `tools/ctl.sh` pastes its argument into JavaScript unescaped. That's fine as a hand-run dev tool, but
   it must never ship.
 
