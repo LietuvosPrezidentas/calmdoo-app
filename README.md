@@ -36,7 +36,7 @@ review and status: `SECURITY.md`.
 `site/index.html` is the one-page download site: a single self-contained file (fonts from Google Fonts),
 ready for any static host. The download buttons stay inactive until `DOWNLOAD_URL` near the top of
 its script is set to the hosted release; until then they show "The download opens with the first
-public release". Only set it for a Developer ID signed, notarized build. Local preview: the
+public release". Only set it for a Developer ID signed, notarized build. `site/privacy.html` is the privacy policy. Before any deploy, run `python3 site/build.py`: it checks the pages and writes `site/vercel.json` with the security headers (see SECURITY.md, "Website and accounts"). Local preview: the
 `booster-site` entry in `~/Money/.claude/launch.json` serves it at http://localhost:8781.
 
 ## How it works

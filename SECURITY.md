@@ -122,3 +122,52 @@ Any sender over finding 2's channel can create unlimited `volume.<anything>` key
   Buffer access stays in bounds for any layout the system reports. Broken input samples are zeroed.
 - Booster never taps itself. Teardown order is right, and the error paths clean up.
 - The permission prompt text is accurate.
+
+## Website and accounts, 2026-10-18
+
+Audit of calmdoo.com, its DNS and its accounts before the download goes public.
+
+| Item | Found | Status |
+|---|---|---|
+| HTTPS | Forced (308 redirect), HSTS `max-age=63072000` | OK. `site/vercel.json` adds `includeSubDomains` |
+| Security headers on calmdoo.com | No CSP, X-Frame-Options, nosniff, Referrer-Policy or Permissions-Policy (placeholder page) | Ready in `site/vercel.json`, written by `site/build.py`; live after deploy |
+| Third parties on the site | Google Fonts: every visitor's IP goes to Google. LG München I, 20 Jan 2022 (3 O 17493/20) awarded €100 for exactly this | Fix ready once the two font files are self-hosted (Hanken Grotesk 34,664 B, Mona Sans 98,064 B, latin subsets) |
+| Script/style injection | Strict CSP: only the page's own files and its exact inline `<style>`/`<script>` (by hash) run | Tested with the policy on: page works, only Google Fonts blocked |
+| Registrar | `client transfer prohibited` (RDAP, 2026-10-18) | OK |
+| DNSSEC | Not signed (`delegationSigned: false`) | Open, low priority |
+| Certificate authorities | CAA allows letsencrypt.org, pki.goog, sectigo.com | OK |
+| Email spoofing | No MX, SPF or DMARC: anyone can send mail "from" @calmdoo.com | Open: add `TXT @ "v=spf1 -all"` and `TXT _dmarc "v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s"` (needs the owner's go-ahead) |
+| `~/calmdoo/.env.local` | Short-lived Vercel OIDC token; gitignored (`.env*`), never committed; was world-readable | Now `chmod 600` |
+| GitHub `LietuvosPrezidentas/calmdoo` | Private | OK |
+| Download integrity | No release yet | `tools/release-check.sh` refuses any zip that is not Developer ID signed, hardened, notarized and stapled; `tools/deploy-site.sh` will not add the link without it. The on-page checksum was dropped (same page as the link, so it protected no one) |
+
+Account steps only the owner can take: two-factor sign-in (authenticator app or passkey, not SMS) on the Gmail account that receives password resets, Apple ID, GitHub, Vercel and Spaceship; keep the backup codes offline.
+
+Deploy rule: only through `tools/deploy-site.sh`. It runs `site/build.py` (blanks, Google Fonts, any outside address not on the allowed list, inline styles or handlers, outside scripts or frames, the secret scan), copies the site into `~/calmdoo`, and re-checks there. Vercel runs `python3 build.py --verify` on every deploy and fails if the pages and `vercel.json` disagree [unverified until the first deploy]. Then `tools/site-monitor.sh`.
+
+## Site review, 2026-10-18
+
+Independent hostile review of `site/`. No injection path found. Five gaps, all fixed the same day:
+1. Checksum on the same page as the link protected no one: replaced by `tools/release-check.sh` (signature + notarization).
+2. `build.py` ran only if remembered: now `tools/deploy-site.sh` plus Vercel's `buildCommand`; the download link is written into the HTML, so the pinned script never changes.
+3. "Boosts reset when you plug in headphones" was untested on real devices: reworded to "when you switch output device", which is what the code does. Still to test: real AirPods and the wired jack.
+4. The check only caught Google: now any outside address not on `ALLOWED_OUTSIDE` fails.
+5. "Nothing is saved or sent" contradicted the saved settings: now "Sound is never saved or sent".
+
+Guards tested to say no: planted outside links, tracking image, `onclick`, inline style and iframe all caught; an ad-hoc zip and a non-calmdoo.com download address refused; deploy stops before touching `~/calmdoo`; `--verify` catches a one-character script edit.
+
+## The vibe-coding security checklist, applied (2026-10-18)
+
+| Advice | Applies to calmdoo? | Status |
+|---|---|---|
+| Secrets in `.env`, never in code or the frontend | Yes | No secrets in the app or site. `tools/secret-scan.sh`: both repos clean, every file and commit; `build.sh` and `site/build.py` stop on a hit. `~/calmdoo/.env.local` gitignored, never committed, `chmod 600` |
+| Don't collect what you don't need | Yes | Nothing collected: no accounts, analytics or network code. `site/privacy.html` says exactly what is stored, on the Mac only |
+| Security review before shipping | Yes | App: hostile review + fixes (findings 1-8). Site: review above |
+| Sanitize user input | Partly | No forms, server or database. The one input channel is test-builds only; non-numbers rejected everywhere |
+| Block bots (reCAPTCHA) | No | Nothing to sign up for. reCAPTCHA would send every visitor to Google, breaking the privacy promise. If downloads get hammered: Vercel's firewall |
+| HTTPS | Yes | Forced + HSTS; watched by `tools/site-monitor.sh` |
+| Sentry / Datadog monitoring | Swapped | An error tracker would make the app phone home. `tools/site-monitor.sh` watches for a swapped page, dropped headers, certificate expiry, a lost domain lock and changed DNS |
+| Row-level security | No | No database |
+| Keep dependencies updated (npm audit) | No | Zero third-party packages in the app and the site. Keep Xcode and macOS updated |
+| Backups | Yes | MISSING: no Time Machine disk, no remote copy of this repo. Needs the owner |
+| Don't build auth or payments yourself | Later | None today. If calmdoo is sold: Paddle or Lemon Squeezy (they handle EU VAT) or Stripe |

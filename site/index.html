@@ -6,12 +6,13 @@
 <title>calmdoo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="calmdoo is a menu bar app for macOS that gives every app its own volume, boosts quiet apps up to 400%, and adds an EQ and a compressor per app.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400..700&family=Martian+Mono:wdth,wght@75..112.5,400..600&family=Mona+Sans:wdth,wght@75..125,500..900&display=swap">
 <style>
-/* Layout: three calm bands. Hero = headline left, the live calmdoo panel right on a soft glow;
-   then three short features, one trust line, and the download band. Orange only where sound is boosted. */
+/* Fonts are served from this site, never from Google: a visitor's browser contacts no other company. */
+@font-face { font-family: "Mona Sans"; src: url("fonts/MonaSans.woff2") format("woff2"); font-weight: 500 900; font-stretch: 75% 125%; font-display: swap; }
+@font-face { font-family: "Hanken Grotesk"; src: url("fonts/HankenGrotesk.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+/* Layout: three calm bands. Hero = headline left, the live calmdoo panel right;
+   then three short features, one trust line, and the download band.
+   Colour rule: everything is ink, white and grey. Orange appears only where sound is boosted past 100%. */
 :root {
   --bg: #F6F7F9;
   --surface: #FFFFFF;
@@ -20,30 +21,28 @@
   --line: #E2E5EA;
   --track: #DADEE4;
   --knob: #FFFFFF;
-  --cool: #2F6FE4;
+  --cool: #1B1F26;
   --hot: #FF5A1F;
   --hot-ink: #C2410C;
-  --ok: #22A35A;
-  --t1: #3A8DF5;
-  --t2: #2DB560;
-  --t3: #E8B21C;
-  --glow: rgba(255, 90, 31, 0.16);
+  --ok: #1B1F26;
+  --t1: #1B1F26;
+  --t2: #1B1F26;
+  --t3: #1B1F26;
+  --glow: transparent;
   --shadow: 0 30px 60px -30px rgba(14, 17, 22, 0.35), 0 2px 6px rgba(14, 17, 22, 0.06);
   --display: "Mona Sans", "Helvetica Neue", Arial, sans-serif;
-  --body: "Hanken Grotesk", -apple-system, "Segoe UI", sans-serif;
-  --mono: "Martian Mono", ui-monospace, Menlo, monospace;
-}
+  --body: "Hanken Grotesk", -apple-system, "Segoe UI", sans-serif;}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0B0C0F; --surface: #16181D; --ink: #F1F3F6; --muted: #9AA3AF; --line: #24272E; --track: #2E333C; --knob: #EEF1F5;
-    --cool: #5C8EFF; --hot: #FF7438; --hot-ink: #FF9A66; --ok: #3CCB74; --glow: rgba(255, 116, 56, 0.2);
+    --cool: #E6E9EE; --hot: #FF7438; --hot-ink: #FF9A66; --ok: #E6E9EE; --glow: transparent; --t1: #E6E9EE; --t2: #E6E9EE; --t3: #E6E9EE;
     --shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0B0C0F; --surface: #16181D; --ink: #F1F3F6; --muted: #9AA3AF; --line: #24272E; --track: #2E333C; --knob: #EEF1F5;
-  --cool: #5C8EFF; --hot: #FF7438; --hot-ink: #FF9A66; --ok: #3CCB74; --glow: rgba(255, 116, 56, 0.2);
+  --cool: #E6E9EE; --hot: #FF7438; --hot-ink: #FF9A66; --ok: #E6E9EE; --glow: transparent; --t1: #E6E9EE; --t2: #E6E9EE; --t3: #E6E9EE;
   --shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   color-scheme: dark;
 }
@@ -59,14 +58,14 @@ svg { display: block; }
 /* nav */
 .nav { display: flex; align-items: center; justify-content: space-between; padding-block: 22px; }
 .mark { display: flex; align-items: center; gap: 9px; text-decoration: none; font-family: var(--display); font-stretch: 112%; font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
-.mark svg { width: 24px; height: 24px; color: var(--hot); }
+.mark svg { width: 24px; height: 24px; color: var(--ink); }
 .nav-link { font-weight: 600; font-size: 15px; text-decoration: none; padding: 8px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
 .nav-link:hover { border-color: var(--muted); }
 
 /* hero */
 .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: 72px; align-items: center; padding-block: 48px 104px; }
 .hero h1 { font-weight: 760; font-size: clamp(2.8rem, 6.4vw, 5.2rem); line-height: 0.98; margin: 0 0 24px; }
-.hero h1 span { color: var(--hot); }
+.hero h1 span { color: inherit; }
 .sub { font-size: 1.22rem; color: var(--muted); max-width: 33ch; margin: 0 0 34px; }
 .cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
 .btn { display: inline-flex; align-items: center; gap: 10px; background: var(--ink); color: var(--bg); text-decoration: none; font-weight: 700; font-size: 16px; padding: 15px 26px; border-radius: 999px; transition: transform .15s ease, opacity .15s ease; }
@@ -88,16 +87,17 @@ svg { display: block; }
 .sep { height: 1px; background: var(--line); margin: 14px 0; }
 .rows { display: grid; gap: 14px; }
 .row { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: center; }
-.tile { width: 30px; height: 30px; border-radius: 8px; background: var(--tint); color: #FFFFFF; display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+.tile { width: 30px; height: 30px; border-radius: 8px; background: var(--ink); color: var(--surface); display: grid; place-items: center; font-weight: 800; font-size: 14px; }
 .row-top { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
 .dot.off { visibility: hidden; }
-.pct { margin-left: auto; background: none; border: 0; padding: 0 2px; font-family: var(--mono); font-stretch: 87.5%; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums; }
-.pct.boost, .pct.muted { color: var(--hot-ink); }
+.pct { margin-left: auto; background: none; border: 0; padding: 0 2px; font-family: var(--body); font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums; }
+.pct.boost { color: var(--hot-ink); }
+.pct.muted { color: var(--ink); }
 .row-ctl { display: flex; align-items: center; gap: 8px; }
 .mute { background: none; border: 0; padding: 2px; color: var(--muted); cursor: pointer; flex: none; }
 .mute svg { width: 17px; height: 17px; }
-.mute[aria-pressed="true"] { color: var(--hot-ink); }
+.mute[aria-pressed="true"] { color: var(--ink); }
 .hint { position: relative; font-size: 14px; color: var(--muted); margin: 14px 4px 0; }
 
 /* sliders */
@@ -122,8 +122,8 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .s-hot { fill: var(--hot); }
 .s-faint { fill: var(--track); }
 .s-dash { stroke: var(--muted); stroke-dasharray: 3 3; stroke-width: 1; opacity: .6; }
-.s-line { stroke: var(--cool); stroke-width: 2.5; fill: none; stroke-linecap: round; }
-.s-knob { fill: var(--surface); stroke: var(--cool); stroke-width: 2; }
+.s-line { stroke: var(--ink); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+.s-knob { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
 
 /* trust line */
 .trust { display: flex; flex-wrap: wrap; gap: 12px 32px; padding-block: 0 80px; font-weight: 600; color: var(--muted); }
@@ -134,8 +134,9 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .cta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 48px; align-items: center; background: var(--ink); color: var(--bg); border-radius: 28px; padding: 56px clamp(24px, 6vw, 72px); }
 .cta h2 { font-weight: 760; font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1; margin: 0 0 14px; }
 .cta p { margin: 0; opacity: .72; max-width: 50ch; }
-.cta .btn { background: var(--hot); color: #FFFFFF; }
-.soon { margin-top: 12px; font-weight: 700; color: var(--hot); }
+.cta .btn { background: var(--bg); color: var(--ink); }
+.soon { margin-top: 12px; font-weight: 700; }
+footer a { color: inherit; }
 
 footer { padding-block: 32px 44px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 14px; }
 
@@ -226,13 +227,13 @@ footer { padding-block: 32px 44px; display: flex; flex-wrap: wrap; justify-conte
     <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>No driver to install</span>
     <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>No account</span>
     <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Sound never leaves your Mac</span>
-    <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Boosts reset when you plug in headphones</span>
+    <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Boosts reset when you switch output device</span>
   </div>
 
   <section id="get" class="cta">
     <div>
       <h2 class="display">Get calmdoo</h2>
-      <p>On first launch, macOS asks once for System Audio Recording. That lets calmdoo change other apps' sound. Nothing is saved or sent.</p>
+      <p>On first launch, macOS asks once for System Audio Recording. That lets calmdoo change other apps' sound. Sound is never saved or sent.</p>
       <p class="soon" id="soon" hidden>The download opens with the first public release.</p>
     </div>
     <a class="btn" href="#get" data-download>
@@ -242,14 +243,12 @@ footer { padding-block: 32px 44px; display: flex; flex-wrap: wrap; justify-conte
   </section>
 
   <footer>
-    <span>calmdoo 1.0</span>
+    <span>calmdoo 1.0 · <a href="privacy.html">Privacy</a></span>
     <span>macOS 15 or later · Apple silicon</span>
   </footer>
 </div>
 
 <script>
-// Set this to the hosted calmdoo.zip once a signed, notarized release exists.
-const DOWNLOAD_URL = "";
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -275,7 +274,7 @@ let master = 1;
 const rowsEl = document.getElementById("rows");
 rowsEl.innerHTML = apps.map((a) => `
   <div class="row" data-id="${a.id}">
-    <div class="tile" style="--tint:${a.tint}" aria-hidden="true">${a.name[0]}</div>
+    <div class="tile" aria-hidden="true">${a.name[0]}</div>
     <div>
       <div class="row-top"><span>${a.name}</span><span class="dot${a.playing ? "" : " off"}" title="Playing now"></span>
         <button class="pct" type="button" title="Reset to 100%"></button></div>
@@ -339,8 +338,10 @@ renderMaster();
   requestAnimationFrame(step);
 })();
 
+// Download links stay "#get" until a signed, notarized release exists. tools/deploy-site.sh then writes
+// the real address into the HTML itself, so the links work even without JavaScript.
 document.querySelectorAll("[data-download]").forEach((a) => {
-  if (DOWNLOAD_URL) { a.href = DOWNLOAD_URL; return; }
+  if (a.getAttribute("href") !== "#get") return;
   a.addEventListener("click", (e) => {
     e.preventDefault();
     document.getElementById("soon").hidden = false;

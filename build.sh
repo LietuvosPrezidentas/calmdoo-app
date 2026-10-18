@@ -7,6 +7,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Never build with a key or token anywhere in the repo or its history.
+tools/secret-scan.sh > /dev/null || { tools/secret-scan.sh; exit 1; }
+
 FLAGS=()
 if [[ " $* " == *" --test-hooks "* ]]; then FLAGS=(-Xswiftc -DBOOSTER_TEST_HOOKS); fi
 swift build -c release ${FLAGS[@]+"${FLAGS[@]}"}

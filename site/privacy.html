@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>calmdoo Privacy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How calmdoo, the Mac app and calmdoo.com, handles your data: sound is changed in memory and never recorded, settings stay on your Mac, and the website has no cookies or trackers.">
+<style>
+/* Fonts are served from this site, never from Google: a visitor's browser contacts no other company. */
+@font-face { font-family: "Mona Sans"; src: url("fonts/MonaSans.woff2") format("woff2"); font-weight: 500 900; font-stretch: 75% 125%; font-display: swap; }
+@font-face { font-family: "Hanken Grotesk"; src: url("fonts/HankenGrotesk.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+/* Layout: one reading column. Same tokens as the home page: ink, white and grey; the only accent marks the blanks still to fill. */
+:root {
+  --bg: #F6F7F9;
+  --surface: #FFFFFF;
+  --ink: #0E1116;
+  --muted: #5E6673;
+  --line: #E2E5EA;
+  --fill: #FFE7DC;
+  --fill-ink: #9A3412;
+  --display: "Mona Sans", "Helvetica Neue", Arial, sans-serif;
+  --body: "Hanken Grotesk", -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B0C0F; --surface: #16181D; --ink: #F1F3F6; --muted: #9AA3AF; --line: #24272E; --fill: #3A2117; --fill-ink: #FFB48F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B0C0F; --surface: #16181D; --ink: #F1F3F6; --muted: #9AA3AF; --line: #24272E; --fill: #3A2117; --fill-ink: #FFB48F;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 720px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); padding-block: 0 64px; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
+.nav { display: flex; align-items: center; justify-content: space-between; padding-block: 22px 40px; }
+.mark { display: flex; align-items: center; gap: 9px; text-decoration: none; font-family: var(--display); font-stretch: 112%; font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
+.mark svg { width: 24px; height: 24px; }
+h1, h2 { font-family: var(--display); font-stretch: 108%; letter-spacing: -0.025em; text-wrap: balance; line-height: 1.1; }
+h1 { font-size: clamp(2.2rem, 6vw, 3.2rem); font-weight: 760; margin: 0 0 10px; }
+h2 { font-size: 1.45rem; font-weight: 720; margin: 44px 0 10px; }
+h3 { font-size: 1.05rem; margin: 24px 0 6px; }
+p, li { max-width: 65ch; }
+p { margin: 0 0 14px; }
+ul { padding-left: 22px; margin: 0 0 14px; }
+li { margin-bottom: 6px; }
+.dated { color: var(--muted); margin-bottom: 28px; }
+.short { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px 6px; }
+.short h2 { margin-top: 0; font-size: 1.1rem; }
+code { font-size: 0.88em; overflow-wrap: anywhere; }
+.fill { background: var(--fill); color: var(--fill-ink); border-radius: 4px; padding: 0 4px; font-weight: 700; }
+.muted { color: var(--muted); }
+footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <nav class="nav">
+    <a class="mark" href="index.html" aria-label="calmdoo home">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9h4l5-4.2v14.4l-5-4.2h-4z" fill="currentColor"/><path d="M15.5 9.3a3.6 3.6 0 0 1 0 5.4M18 6.8a7.2 7.2 0 0 1 0 10.4M20.4 4.4a10.6 10.6 0 0 1 0 15.2" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round"/></svg>
+      calmdoo
+    </a>
+  </nav>
+
+  <h1>Privacy</h1>
+  <p class="dated">Effective 18 October 2026. This covers the calmdoo app for Mac and the website calmdoo.com.</p>
+
+  <section class="short">
+    <h2>The short version</h2>
+    <ul>
+      <li>The app changes other apps' sound in memory and plays it straight back. It never records it, saves it or sends it anywhere.</li>
+      <li>The app has no internet code at all. Your settings stay on your Mac.</li>
+      <li>The website has no cookies, no analytics and no trackers. Its host sees your IP address in order to deliver the page.</li>
+    </ul>
+  </section>
+
+  <h2>Who is responsible</h2>
+  <p>calmdoo is made by <span class="fill">[FILL: your full name]</span>, <span class="fill">[FILL: your country]</span>, who is responsible for your data under the EU General Data Protection Regulation (GDPR). Contact: <span class="fill">[FILL: contact email]</span>.</p>
+
+  <h2>The Mac app</h2>
+
+  <h3>Sound from other apps</h3>
+  <p>To change another app's volume, macOS has calmdoo pass that app's sound through itself. That is why macOS asks you once for the <b>System Audio Recording</b> permission. calmdoo uses it only for apps whose volume, EQ or compressor you have changed, or for every app while "Boost everything" is above 100%.</p>
+  <p>The sound is adjusted in memory, a few milliseconds at a time, and played straight back. It is never written to disk and never leaves your Mac. You can take the permission away at any time in System Settings → Privacy &amp; Security → Screen &amp; System Audio Recording.</p>
+
+  <h3>Settings saved on your Mac</h3>
+  <p>calmdoo remembers your choices: each app's volume, mute, EQ and compressor, and the "Boost everything" level. They are saved only for apps whose settings you have changed, under each app's identifier (for example <code>com.spotify.client</code>). So this file lists the apps whose sound you have adjusted. It is stored at <code>~/Library/Preferences/com.calmdoo.app.plist</code> and is never sent anywhere.</p>
+
+  <h3>Problem log</h3>
+  <p>If something goes wrong, for example macOS refuses the permission or an app's sound cannot be changed, calmdoo writes one line about it to <code>~/Library/Logs/calmdoo.log</code>, including the name of the app involved. The log holds problems only, never a history of what you played, is limited to 1 MB, and is never sent anywhere.</p>
+
+  <h3>What the app does not do</h3>
+  <p>calmdoo contains no networking code. It has no analytics, no crash reporting of its own, no accounts, no ads and no update checks. If that ever changes, this page will say so first.</p>
+  <p>macOS itself may send diagnostics to Apple if you have allowed that in System Settings. That is between you and Apple, under Apple's own privacy policy.</p>
+
+  <h3>Removing everything</h3>
+  <p>Quit calmdoo, drag it from Applications to the Trash, and delete <code>~/Library/Preferences/com.calmdoo.app.plist</code> and <code>~/Library/Logs/calmdoo.log</code>. To clear its permission too, remove calmdoo in System Settings → Privacy &amp; Security → Screen &amp; System Audio Recording.</p>
+
+  <h2>The website</h2>
+  <p>calmdoo.com sets no cookies and runs no analytics or tracking scripts. Its fonts and files are served from calmdoo.com itself, so no other company is contacted while you read it.</p>
+  <p>The site is hosted by Vercel Inc., based in the United States. To deliver pages and downloads and to protect the site, Vercel processes your IP address and the city and country it derives from it, acting as our processor. Vercel does not publish a fixed retention period for this; we do not use it to identify visitors. Details, including how Vercel protects data sent from the EU to the US: <a href="https://vercel.com/legal/privacy-notice">vercel.com/legal/privacy-notice</a>.</p>
+  <p>Our legal basis is our legitimate interest in running a working, secure website (Article 6(1)(f) GDPR).</p>
+
+  <h2>Your rights</h2>
+  <p>You can ask us to show, correct or delete personal data we hold about you, to restrict or object to its use, and to receive it in a portable form. Since the app keeps everything on your Mac and the site collects nothing beyond the host's logs, we usually hold nothing about you, but write to us and we will check, including with Vercel. You can also complain to a data protection authority, for example <span class="fill">[FILL: the authority in your country]</span>.</p>
+
+  <h2>Children</h2>
+  <p>calmdoo collects no personal data from anyone, including children.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, the date at the top changes too, and any change to what the app or site collects is described here before it takes effect.</p>
+
+  <footer>
+    <a href="index.html">calmdoo</a>
+    <span>Effective 18 October 2026</span>
+  </footer>
+</div>
+</body>
+</html>

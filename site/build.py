@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Checks the calmdoo site and writes vercel.json with its security headers.
+
+    python3 site/build.py           check the pages, write vercel.json
+    python3 site/build.py --verify  check only, and fail if vercel.json is missing or out of date
+                                    (Vercel runs this on every deploy, see "buildCommand" below)
+
+It exits non-zero, and writes nothing, while anything is wrong. Never deploy on a failure; use
+tools/deploy-site.sh, which runs every check first.
+
+What the Content-Security-Policy does: the browser runs only this site's own files plus the exact
+inline <style> and <script> blocks of these pages (matched by hash). Script injected into a page,
+through a bug or a compromised third party, does not run. What it cannot do: protect against someone
+who controls this repo or the Vercel account, because they can change the pages and this file together.
+Account security (two-factor sign-in) and Apple's notarization of the app cover that.
+"""
+import base64
+import hashlib
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+SITE = Path(__file__).resolve().parent
+VERIFY = "--verify" in sys.argv
+
+# The only outside addresses a page may link to or load. Anything else is refused, because the
+# privacy policy promises that no other company is contacted.
+ALLOWED_OUTSIDE = (
+    "https://vercel.com/legal/privacy-notice",  # linked from the privacy policy
+    "https://calmdoo.com/",                       # the download, once a release exists
+)
+
+
+def sha256(text: str) -> str:
+    return "'sha256-" + base64.b64encode(hashlib.sha256(text.encode()).digest()).decode() + "'"
+
+
+problems, scripts, styles = [], set(), set()
+pages = sorted(SITE.glob("*.html"))
+for page in pages:
+    html = page.read_text()
+    if "[FILL" in html:
+        problems.append(f"{page.name}: blanks still to fill ([FILL ...])")
+    if re.search(r"fonts\.(googleapis|gstatic)\.com", html):
+        problems.append(f"{page.name}: loads Google Fonts, which sends every visitor's IP address to Google. Self-host the fonts in site/fonts/")
+    for url in re.findall(r"""(?:src|href|srcset|action)\s*=\s*["']?(https?://[^"'\s>]+)""", html, re.I):
+        if "fonts.g" in url:
+            continue  # reported above
+        if not url.startswith(ALLOWED_OUTSIDE):
+            problems.append(f"{page.name}: outside address not on the allowed list: {url}")
+    if re.search(r"<[a-z][^>]*\sstyle\s*=", html, re.I):
+        problems.append(f"{page.name}: an inline style attribute, which the security policy blocks")
+    if re.search(r"<[a-z][^>]*\son[a-z]+\s*=", html, re.I):
+        problems.append(f"{page.name}: an inline event handler (onclick=...), which the security policy blocks")
+    if re.search(r"<(script|iframe|object|embed)[^>]*\ssrc\s*=", html, re.I):
+        problems.append(f"{page.name}: loads a script or frame from a file; inline it or remove it")
+    scripts.update(sha256(m) for m in re.findall(r"<script>(.*?)</script>", html, re.S))
+    styles.update(sha256(m) for m in re.findall(r"<style>(.*?)</style>", html, re.S))
+
+for font in re.findall(r"url\(['\"]?/?(fonts/[^)'\"]+)", "".join(p.read_text() for p in pages)):
+    if not (SITE / font).is_file():
+        problems.append(f"missing font file {font}")
+
+scanner = SITE.parent / "tools" / "secret-scan.sh"
+if scanner.is_file():  # absent in the deploy copy, which only holds the site
+    if subprocess.run([str(scanner)], capture_output=True).returncode != 0:
+        problems.append("the secret scan found a key or token in the repo: run tools/secret-scan.sh")
+
+csp = "; ".join([
+    "default-src 'none'",
+    "script-src " + " ".join(sorted(scripts)),
+    "style-src " + " ".join(sorted(styles)),
+    "font-src 'self'",
+    "img-src 'self' data:",
+    "connect-src 'none'",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+])
+
+headers = [
+    {"key": "Content-Security-Policy", "value": csp},
+    # Browsers remember for two years to use HTTPS only, for calmdoo.com and every subdomain.
+    {"key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains"},
+    {"key": "X-Content-Type-Options", "value": "nosniff"},
+    {"key": "X-Frame-Options", "value": "DENY"},
+    {"key": "Referrer-Policy", "value": "no-referrer"},
+    {"key": "Cross-Origin-Opener-Policy", "value": "same-origin"},
+    {"key": "Cross-Origin-Resource-Policy", "value": "same-origin"},
+    {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"},
+]
+
+config = {
+    # Vercel runs the check on every deploy and refuses to publish if the pages and these headers disagree.
+    "buildCommand": "python3 build.py --verify",
+    "outputDirectory": ".",
+    "cleanUrls": True,
+    "headers": [{"source": "/(.*)", "headers": headers}],
+}
+expected = json.dumps(config, indent=2) + "\n"
+target = SITE / "vercel.json"
+
+if VERIFY and (not target.is_file() or target.read_text() != expected):
+    problems.append("vercel.json is missing or out of date: run python3 build.py and redeploy")
+
+if problems:
+    print("NOT READY TO DEPLOY:")
+    for p in problems:
+        print("  -", p)
+    sys.exit(1)
+
+if VERIFY:
+    print(f"OK: {len(pages)} pages match vercel.json")
+else:
+    target.write_text(expected)
+    print(f"OK: {len(pages)} pages, {len(scripts)} script(s) and {len(styles)} style block(s) pinned. Wrote site/vercel.json")
