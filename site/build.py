@@ -45,7 +45,7 @@ def sha256(text: str) -> str:
 problems, scripts, styles = [], set(), set()
 pages = sorted(SITE.glob("*.html"))
 for page in pages:
-    html = page.read_text()
+    html = page.read_text(encoding="utf-8")
     if "[FILL" in html:
         problems.append(f"{page.name}: blanks still to fill ([FILL ...])")
     if re.search(r"fonts\.(googleapis|gstatic)\.com", html):
@@ -64,7 +64,7 @@ for page in pages:
     scripts.update(sha256(m) for m in re.findall(r"<script>(.*?)</script>", html, re.S))
     styles.update(sha256(m) for m in re.findall(r"<style>(.*?)</style>", html, re.S))
 
-for font in re.findall(r"url\(['\"]?/?(fonts/[^)'\"]+)", "".join(p.read_text() for p in pages)):
+for font in re.findall(r"url\(['\"]?/?(fonts/[^)'\"]+)", "".join(p.read_text(encoding="utf-8") for p in pages)):
     if not (SITE / font).is_file():
         problems.append(f"missing font file {font}")
 
@@ -108,8 +108,34 @@ config = {
 expected = json.dumps(config, indent=2) + "\n"
 target = SITE / "vercel.json"
 
-if VERIFY and (not target.is_file() or target.read_text() != expected):
+VERCEL_ADDS = ("name", "version")
+
+
+def same_config() -> bool:
+    # Compared by meaning, not layout: Vercel may reformat vercel.json on its build machine.
+    try:
+        found = json.loads(target.read_text(encoding="utf-8"))
+        # Vercel adds these two on its build machine (seen in its build log, 2026-10-18); everything else must match.
+        return {k: v for k, v in found.items() if k not in VERCEL_ADDS} == config
+    except (OSError, ValueError):
+        return False
+
+
+if VERIFY and not same_config():
     problems.append("vercel.json is missing or out of date: run python3 build.py and redeploy")
+    # Say exactly what differs, so a failure on Vercel's build machine can be read from its log.
+    print(f"python {sys.version.split()[0]}, filesystem encoding {sys.getfilesystemencoding()}")
+    try:
+        found_config = json.loads(target.read_text(encoding="utf-8"))
+        for key in sorted(set(found_config) | set(config)):
+            if key != "headers" and key not in VERCEL_ADDS and found_config.get(key) != config.get(key):
+                print(f"  setting {key} differs: expected {config.get(key)!r}, found {found_config.get(key)!r}")
+        found = {h["key"]: h["value"] for h in found_config["headers"][0]["headers"]}
+        for h in headers:
+            if found.get(h["key"]) != h["value"]:
+                print(f"  {h['key']} differs:\n    expected {h['value'][:300]}\n    found    {str(found.get(h['key']))[:300]}")
+    except Exception as e:
+        print(f"  could not read vercel.json: {e}")
 
 if problems:
     print("NOT READY TO DEPLOY:")
@@ -131,5 +157,5 @@ if VERIFY:
             shutil.copy2(release, out / release.name)
         print(f"Copied {len(pages)} pages and fonts/ into {OUT}/, the only folder served")
 else:
-    target.write_text(expected)
+    target.write_text(expected, encoding="utf-8")
     print(f"OK: {len(pages)} pages, {len(scripts)} script(s) and {len(styles)} style block(s) pinned. Wrote site/vercel.json")

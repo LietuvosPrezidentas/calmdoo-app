@@ -143,7 +143,7 @@ Audit of calmdoo.com, its DNS and its accounts before the download goes public.
 
 Account steps only the owner can take: two-factor sign-in (authenticator app or passkey, not SMS) on the Gmail account that receives password resets, Apple ID, GitHub, Vercel and Spaceship; keep the backup codes offline.
 
-Deploy rule: only through `tools/deploy-site.sh`. It runs `site/build.py` (blanks, Google Fonts, any outside address not on the allowed list, inline styles or handlers, outside scripts or frames, the secret scan), copies the site into `~/calmdoo`, and re-checks there. Vercel runs `python3 build.py --verify` on every deploy and fails if the pages and `vercel.json` disagree [unverified until the first deploy]. Then `tools/site-monitor.sh`.
+Deploy rule: only through `tools/deploy-site.sh`. It runs `site/build.py` (blanks, Google Fonts, any outside address not on the allowed list, inline styles or handlers, outside scripts or frames, the secret scan), copies the site into `~/calmdoo`, and re-checks there. Vercel runs `python3 build.py --verify --out public` on every deploy and fails if the pages and `vercel.json` disagree; only `public/` (pages, fonts, a verified zip) is served. Proven on the first deploy, 2026-10-18: the first three attempts were refused by this check, because Vercel adds `name` and `version` to `vercel.json` on its build machine; once those two were allowed, the deploy went live. Then `tools/site-monitor.sh`.
 
 ## Site review, 2026-10-18
 
@@ -171,3 +171,7 @@ Guards tested to say no: planted outside links, tracking image, `onclick`, inlin
 | Keep dependencies updated (npm audit) | No | Zero third-party packages in the app and the site. Keep Xcode and macOS updated |
 | Backups | Yes | MISSING: no Time Machine disk, no remote copy of this repo. Needs the owner |
 | Don't build auth or payments yourself | Later | None today. If calmdoo is sold: Paddle or Lemon Squeezy (they handle EU VAT) or Stripe |
+
+## Live, 2026-10-18
+
+calmdoo.com serves the new site (deployment `calmdoo-8pciqdqip`). `tools/site-monitor.sh`: all 14 checks pass (HTTPS, redirect, HSTS, CSP, nosniff, frame, referrer and permissions headers, live page = deployed copy, certificate 85 days, transfer lock, nameservers, CAA, SPF + DMARC). Probes: `/.env.local`, `/.env`, `/build.py`, `/vercel.json`, `/.vercelignore`, `/.git/config`, `/.vercel/project.json` all 404. In a browser: the page contacts only calmdoo.com, sets no cookies, and logs no blocked code.
