@@ -35,6 +35,7 @@ ALLOWED_OUTSIDE = (
     "https://vercel.com/legal/privacy-notice",  # linked from the privacy policy
     "https://vdai.lrv.lt/en/",                    # Lithuania's data protection authority, ditto
     "https://calmdoo.com/",                       # the download, once a release exists
+    "https://github.com/LietuvosPrezidentas/calmdoo-app",  # the source code, linked from the footer
 )
 
 
