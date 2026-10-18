@@ -20,6 +20,8 @@ if [ -n "$URL" ]; then
     || { echo "REFUSED: the zip changed after it was checked"; exit 1; }
 fi
 
+# Never upload secrets or tooling: .env* holds a Vercel token. Vercel builds public/ itself.
+printf '%s\n' '.env*' '.vercel' 'public' '*.md' '.DS_Store' 'release-verified.txt' > "$DEST/.vercelignore"
 for f in index.html privacy.html build.py vercel.json; do cp "site/$f" "$DEST/$f"; done
 if [ -d site/fonts ]; then rm -rf "$DEST/fonts"; cp -R site/fonts "$DEST/fonts"; fi
 if [ -n "$URL" ]; then
@@ -28,7 +30,11 @@ if [ -n "$URL" ]; then
   sed -i '' "s|href=\"#get\" data-download|href=\"$URL\" data-download|g" "$DEST/index.html"
 fi
 
-(cd "$DEST" && python3 build.py --verify)  # the same check Vercel runs
+# The same build Vercel runs, done here first; then the served folder is checked for anything secret.
+(cd "$DEST" && python3 build.py --verify --out public)
+leak=$(cd "$DEST/public" && find . -type f ! -name '*.html' ! -path './fonts/*.woff2' ! -path './fonts/OFL-*.txt' ! -path './*.zip')
+[ -z "$leak" ] || { echo "REFUSED: unexpected files would be served: $leak"; exit 1; }
+rm -rf "$DEST/public"
 tools/secret-scan.sh "$DEST"
 
 echo

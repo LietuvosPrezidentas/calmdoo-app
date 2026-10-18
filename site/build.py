@@ -3,7 +3,9 @@
 
     python3 site/build.py           check the pages, write vercel.json
     python3 site/build.py --verify  check only, and fail if vercel.json is missing or out of date
-                                    (Vercel runs this on every deploy, see "buildCommand" below)
+    python3 build.py --verify --out public
+                                    what Vercel runs on every deploy (see "buildCommand" below): check,
+                                    then copy only the pages and fonts into public/, the one folder served
 
 It exits non-zero, and writes nothing, while anything is wrong. Never deploy on a failure; use
 tools/deploy-site.sh, which runs every check first.
@@ -18,17 +20,20 @@ import base64
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 SITE = Path(__file__).resolve().parent
 VERIFY = "--verify" in sys.argv
+OUT = sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else None
 
 # The only outside addresses a page may link to or load. Anything else is refused, because the
 # privacy policy promises that no other company is contacted.
 ALLOWED_OUTSIDE = (
     "https://vercel.com/legal/privacy-notice",  # linked from the privacy policy
+    "https://vdai.lrv.lt/en/",                    # Lithuania's data protection authority, ditto
     "https://calmdoo.com/",                       # the download, once a release exists
 )
 
@@ -94,8 +99,9 @@ headers = [
 
 config = {
     # Vercel runs the check on every deploy and refuses to publish if the pages and these headers disagree.
-    "buildCommand": "python3 build.py --verify",
-    "outputDirectory": ".",
+    # Only public/ is served: this script, vercel.json and anything else in the folder never are.
+    "buildCommand": "python3 build.py --verify --out public",
+    "outputDirectory": "public",
     "cleanUrls": True,
     "headers": [{"source": "/(.*)", "headers": headers}],
 }
@@ -113,6 +119,17 @@ if problems:
 
 if VERIFY:
     print(f"OK: {len(pages)} pages match vercel.json")
+    if OUT:
+        out = SITE / OUT
+        shutil.rmtree(out, ignore_errors=True)
+        out.mkdir()
+        for page in pages:
+            shutil.copy2(page, out / page.name)
+        if (SITE / "fonts").is_dir():
+            shutil.copytree(SITE / "fonts", out / "fonts")
+        for release in SITE.glob("*.zip"):  # the app download, placed here by tools/deploy-site.sh
+            shutil.copy2(release, out / release.name)
+        print(f"Copied {len(pages)} pages and fonts/ into {OUT}/, the only folder served")
 else:
     target.write_text(expected)
     print(f"OK: {len(pages)} pages, {len(scripts)} script(s) and {len(styles)} style block(s) pinned. Wrote site/vercel.json")
