@@ -74,6 +74,7 @@ svg { display: block; }
 .btn { display: inline-flex; align-items: center; gap: 10px; background: var(--ink); color: var(--bg); text-decoration: none; font-weight: 700; font-size: 16px; padding: 15px 26px; border-radius: 999px; transition: transform .15s ease, opacity .15s ease; }
 .btn:hover { transform: translateY(-1px); }
 .btn svg { width: 18px; height: 18px; }
+.btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px currentColor; }
 .meta { font-size: 14.5px; color: var(--muted); }
 
 /* the live panel */
@@ -138,6 +139,8 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .cta h2 { font-weight: 760; font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1; margin: 0 0 14px; }
 .cta p { margin: 0; opacity: .72; max-width: 50ch; }
 .cta .btn { background: var(--bg); color: var(--ink); }
+.cta .btn-ghost { background: transparent; color: var(--bg); box-shadow: inset 0 0 0 1.5px currentColor; }
+.cta-btns { display: flex; flex-wrap: wrap; gap: 12px; }
 .soon { margin-top: 12px; font-weight: 700; }
 footer a { color: inherit; }
 
@@ -173,6 +176,10 @@ footer { padding-block: 32px 44px; display: flex; flex-wrap: wrap; justify-conte
         <a class="btn" href="#get" data-download>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Download for Mac
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/LietuvosPrezidentas/calmdoo-app">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          Get it on GitHub
         </a>
         <span class="meta">macOS 15+ · Apple silicon &amp; Intel</span>
       </div>
@@ -239,10 +246,16 @@ footer { padding-block: 32px 44px; display: flex; flex-wrap: wrap; justify-conte
       <p>On first launch, macOS asks once for System Audio Recording. That lets calmdoo change other apps' sound. Sound is never saved or sent.</p>
       <p class="soon" id="soon" hidden>The download opens with the first public release.</p>
     </div>
-    <a class="btn" href="#get" data-download>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Download for Mac
-    </a>
+    <div class="cta-btns">
+      <a class="btn" href="#get" data-download>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download for Mac
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/LietuvosPrezidentas/calmdoo-app">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        Get it on GitHub
+      </a>
+    </div>
   </section>
 
   <footer>
