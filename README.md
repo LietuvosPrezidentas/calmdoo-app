@@ -96,3 +96,8 @@ tools/ctl.sh dump                 # also: com.apple.Safari=0.5, eq=com.apple.Saf
 
 Output goes to `~/Library/Logs/calmdoo.log`. Release builds ignore these commands and log problems
 only, never which apps played.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE). The fonts in `site/fonts/` have their own licence (SIL Open Font
+License, texts next to the files).
