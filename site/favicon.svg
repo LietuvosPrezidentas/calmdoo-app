@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- calmdoo: the speaker from the logo. Ink and white; the outer wave is orange, the site's one colour, meaning "boosted".
+       Light colours sit on the shapes; browsers apply the dark-mode rule below on top of them. -->
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #F1F3F6 }
+      .glyph { fill: #0E1116 }
+      .wave { stroke: #0E1116 }
+    }
+  </style>
+  <rect class="tile" width="64" height="64" rx="14" fill="#0E1116"/>
+  <path class="glyph" fill="#FFFFFF" d="M12.5 25.5a1.5 1.5 0 0 1 1.5-1.5h6.5l9.6-8.4a1 1 0 0 1 1.7.8v31.2a1 1 0 0 1-1.7.8L20.5 40H14a1.5 1.5 0 0 1-1.5-1.5z"/>
+  <path class="wave" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" d="M39.6 25a10 10 0 0 1 0 14"/>
+  <path class="boost" fill="none" stroke="#FF5A1F" stroke-width="5" stroke-linecap="round" d="M45.4 19.3a18 18 0 0 1 0 25.4"/>
+</svg>

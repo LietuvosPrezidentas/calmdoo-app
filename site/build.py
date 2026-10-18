@@ -38,6 +38,10 @@ ALLOWED_OUTSIDE = (
 )
 
 
+# The site icon in every form browsers and phones ask for.
+ICONS = ("favicon.svg", "favicon.ico", "favicon-32.png", "apple-touch-icon.png")
+
+
 def sha256(text: str) -> str:
     return "'sha256-" + base64.b64encode(hashlib.sha256(text.encode()).digest()).decode() + "'"
 
@@ -63,6 +67,10 @@ for page in pages:
         problems.append(f"{page.name}: loads a script or frame from a file; inline it or remove it")
     scripts.update(sha256(m) for m in re.findall(r"<script>(.*?)</script>", html, re.S))
     styles.update(sha256(m) for m in re.findall(r"<style>(.*?)</style>", html, re.S))
+
+for icon in re.findall(r'rel="(?:icon|apple-touch-icon)"[^>]*href="([^"]+)"', "".join(p.read_text(encoding="utf-8") for p in pages)):
+    if icon not in ICONS or not (SITE / icon).is_file():
+        problems.append(f"icon {icon} is linked but missing or not on the ICONS list")
 
 for font in re.findall(r"url\(['\"]?/?(fonts/[^)'\"]+)", "".join(p.read_text(encoding="utf-8") for p in pages)):
     if not (SITE / font).is_file():
@@ -153,6 +161,9 @@ if VERIFY:
             shutil.copy2(page, out / page.name)
         if (SITE / "fonts").is_dir():
             shutil.copytree(SITE / "fonts", out / "fonts")
+        for icon in ICONS:
+            if (SITE / icon).is_file():
+                shutil.copy2(SITE / icon, out / icon)
         for release in SITE.glob("*.zip"):  # the app download, placed here by tools/deploy-site.sh
             shutil.copy2(release, out / release.name)
         print(f"Copied {len(pages)} pages and fonts/ into {OUT}/, the only folder served")

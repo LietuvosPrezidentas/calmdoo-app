@@ -22,7 +22,7 @@ fi
 
 # Never upload secrets or tooling: .env* holds a Vercel token. Vercel builds public/ itself.
 printf '%s\n' '.env*' '.vercel' 'public' '*.md' '.DS_Store' 'release-verified.txt' > "$DEST/.vercelignore"
-for f in index.html privacy.html build.py vercel.json; do cp "site/$f" "$DEST/$f"; done
+for f in index.html privacy.html build.py vercel.json favicon.svg favicon.ico favicon-32.png apple-touch-icon.png; do cp "site/$f" "$DEST/$f"; done
 if [ -d site/fonts ]; then rm -rf "$DEST/fonts"; cp -R site/fonts "$DEST/fonts"; fi
 if [ -n "$URL" ]; then
   cp "$zip" "$DEST/$(basename "$URL")"
@@ -32,7 +32,7 @@ fi
 
 # The same build Vercel runs, done here first; then the served folder is checked for anything secret.
 (cd "$DEST" && python3 build.py --verify --out public)
-leak=$(cd "$DEST/public" && find . -type f ! -name '*.html' ! -path './fonts/*.woff2' ! -path './fonts/OFL-*.txt' ! -path './*.zip')
+leak=$(cd "$DEST/public" && find . -type f ! -name '*.html' ! -path './fonts/*.woff2' ! -path './fonts/OFL-*.txt' ! -path './*.zip' ! -name 'favicon.svg' ! -name 'favicon.ico' ! -name 'favicon-32.png' ! -name 'apple-touch-icon.png')
 [ -z "$leak" ] || { echo "REFUSED: unexpected files would be served: $leak"; exit 1; }
 rm -rf "$DEST/public"
 tools/secret-scan.sh "$DEST"
