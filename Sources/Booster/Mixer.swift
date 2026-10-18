@@ -29,7 +29,7 @@ final class Mixer {
     /// 1...4: boosts every app on top of its own slider.
     private(set) var master: Double = 1
 
-    private struct Identity { let key: String; let name: String; let icon: NSImage? }
+    private struct Identity { let key: String; let name: String; let icon: NSImage?; let isApp: Bool }
     private struct Group { let identity: Identity; var objects: Set<AudioObjectID>; var playing: Bool }
 
     @ObservationIgnored private let defaults = UserDefaults.standard
@@ -224,6 +224,7 @@ final class Mixer {
         var found: [String: Group] = [:]
         for p in processes {
             let id = identity(p)
+            guard id.isApp else { continue } // macOS's own sounds (charging chime, alerts) are left alone
             found[id.key, default: Group(identity: id, objects: [], playing: false)].objects.insert(p.objectID)
             if p.isPlaying { found[id.key]?.playing = true }
         }
@@ -317,20 +318,22 @@ final class Mixer {
 
     // MARK: - Naming apps
 
-    private static let friendlyNames = [
-        "systemsoundserverd": "System sounds",
-        "com.apple.PowerChime": "Charging sound",
-    ]
-
     private func identity(_ p: AudioProcess) -> Identity {
         if let cached = identities[p.ownerPID] { return cached }
         let id: Identity
-        if let app = NSRunningApplication(processIdentifier: p.ownerPID), let bundle = app.bundleIdentifier {
-            id = Identity(key: bundle, name: Self.clean(Self.friendlyNames[bundle] ?? app.localizedName ?? bundle), icon: app.icon)
+        // The app the sound belongs to (Safari for its WebKit helper), else the process itself.
+        if let app = NSRunningApplication(processIdentifier: p.ownerPID) ?? NSRunningApplication(processIdentifier: p.pid),
+           let bundle = app.bundleIdentifier {
+            let kind: AppFilter.Kind = switch app.activationPolicy {
+            case .regular: .regular
+            case .accessory: .accessory
+            default: .prohibited
+            }
+            id = Identity(key: bundle, name: Self.clean(app.localizedName ?? bundle), icon: app.icon,
+                          isApp: AppFilter.isUserFacing(kind, bundleID: bundle))
         } else {
             let bundle = p.bundleID ?? AudioProcesses.processName(p.pid) ?? "pid.\(p.pid)"
-            let fallback = bundle.split(separator: ".").last.map(String.init) ?? bundle
-            id = Identity(key: bundle, name: Self.friendlyNames[bundle] ?? fallback, icon: nil)
+            id = Identity(key: bundle, name: bundle, icon: nil, isApp: AppFilter.isUserFacing(.notAnApp, bundleID: bundle))
         }
         identities[p.ownerPID] = id
         return id

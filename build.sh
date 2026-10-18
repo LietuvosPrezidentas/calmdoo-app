@@ -12,12 +12,16 @@ tools/secret-scan.sh > /dev/null || { tools/secret-scan.sh; exit 1; }
 
 FLAGS=()
 if [[ " $* " == *" --test-hooks "* ]]; then FLAGS=(-Xswiftc -DBOOSTER_TEST_HOOKS); fi
-swift build -c release ${FLAGS[@]+"${FLAGS[@]}"}
+# One app for both Apple silicon and Intel Macs (Intel ones top out at macOS 26; calmdoo needs 15+).
+ARCHS=(--arch arm64 --arch x86_64)
+swift build -c release "${ARCHS[@]}" ${FLAGS[@]+"${FLAGS[@]}"}
+BIN="$(swift build -c release "${ARCHS[@]}" ${FLAGS[@]+"${FLAGS[@]}"} --show-bin-path)/Booster"
+[ "$(lipo -archs "$BIN")" = "x86_64 arm64" ] || { echo "expected an arm64 + x86_64 app, got: $(lipo -archs "$BIN")"; exit 1; }
 
 APP=build/calmdoo.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
-cp .build/release/Booster "$APP/Contents/MacOS/calmdoo"
+cp "$BIN" "$APP/Contents/MacOS/calmdoo"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 # Ad-hoc signature (this Mac has no developer certificate) with the default requirement, which pins
 # the permission to this exact build: macOS asks again after each rebuild, and nothing else can

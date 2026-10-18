@@ -84,3 +84,8 @@ Output goes to `~/Library/Logs/calmdoo.log`.
 - When the output device changes, boosts above 100% go back to 100% (turned-down apps stay down),
   so a boost meant for quiet speakers never lands in headphones.
 - Release builds log problems only, never which apps played.
+- Only real apps are listed and adjusted (Dock apps, plus other companies' menu bar apps). macOS's own
+  sounds, like the charging chime, alerts, Siri and Control Centre, are never touched. One side effect:
+  FaceTime and phone-call audio is played by a macOS service, so it cannot be adjusted.
+- One app for Apple silicon and Intel (`lipo -archs`: x86_64 arm64), macOS 15+. The Intel half is
+  built but untested: the build Mac has no Rosetta.

@@ -126,3 +126,14 @@ private func dB(_ ratio: Float) -> Float { 20 * log10f(ratio) }
     #expect(GainCurve.combined(app: 2, master: 1.5) == 3)
     #expect(GainCurve.combined(app: 0.5, master: 1) == 0.25)
 }
+
+// The charging chime and other parts of macOS used to show up as "apps" and get boosted.
+@Test func onlyRealAppsAreListed() {
+    #expect(AppFilter.isUserFacing(.regular, bundleID: "com.apple.Safari"))
+    #expect(AppFilter.isUserFacing(.regular, bundleID: "com.spotify.client"))
+    #expect(AppFilter.isUserFacing(.accessory, bundleID: "com.example.menubarplayer"))
+    #expect(!AppFilter.isUserFacing(.accessory, bundleID: "com.apple.controlcenter"))
+    #expect(!AppFilter.isUserFacing(.prohibited, bundleID: "com.apple.PowerChime"))
+    #expect(!AppFilter.isUserFacing(.notAnApp, bundleID: "systemsoundserverd"))
+    #expect(!AppFilter.isUserFacing(.notAnApp, bundleID: nil))
+}

@@ -175,3 +175,12 @@ Guards tested to say no: planted outside links, tracking image, `onclick`, inlin
 ## Live, 2026-10-18
 
 calmdoo.com serves the new site (deployment `calmdoo-8pciqdqip`). `tools/site-monitor.sh`: all 14 checks pass (HTTPS, redirect, HSTS, CSP, nosniff, frame, referrer and permissions headers, live page = deployed copy, certificate 85 days, transfer lock, nameservers, CAA, SPF + DMARC). Probes: `/.env.local`, `/.env`, `/build.py`, `/vercel.json`, `/.vercelignore`, `/.git/config`, `/.vercel/project.json` all 404. In a browser: the page contacts only calmdoo.com, sets no cookies, and logs no blocked code.
+
+## Follow-ups, 2026-10-18
+
+- **System sounds no longer touched.** The app listed and, with "Boost everything" above 100%, tapped macOS's own helpers (PowerChime showed up as "Charging sound"). Now only real apps are listed or tapped (`AppFilter`, tested). On this Mac: Safari, Chrome, Spotify, Telegram, WhatsApp, Wispr Flow and Claude listed; PowerChime, Control Centre, Siri, call services and 16 daemons hidden.
+- **Intel build.** One app, x86_64 + arm64, both `minos 15.0`; build.sh refuses a single-chip result. Intel half untested (no Rosetta here). Note: macOS 27 drops Intel, so Intel users are on macOS 15-26.
+- **Deploy folder recorded.** `~/calmdoo` commit 958cd74 holds the files serving calmdoo.com (local only, not pushed).
+- **Vercel CLI** 54.18.6 -> 64.5.0. npm 11 held back esbuild's install script (its supply-chain default); left held back.
+- **DNSSEC: not available.** Vercel staff, Jan and Apr 2026: not supported on Vercel nameservers, no timeline (community.vercel.com/t/17968). Would need moving DNS elsewhere; not worth it now.
+- **HSTS preload: not requested.** Hard to undo (months) and adds little over the existing HSTS.
