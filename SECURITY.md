@@ -178,7 +178,7 @@ calmdoo.com serves the new site (deployment `calmdoo-8pciqdqip`). `tools/site-mo
 
 ## Follow-ups, 2026-10-18
 
-- **System sounds no longer touched.** The app listed and, with "Boost everything" above 100%, tapped macOS's own helpers (PowerChime showed up as "Charging sound"). Now only real apps are listed or tapped (`AppFilter`, tested). On this Mac: Safari, Chrome, Spotify, Telegram, WhatsApp, Wispr Flow and Claude listed; PowerChime, Control Centre, Siri, call services and 16 daemons hidden.
+- **System sounds no longer touched.** The app listed and, with "Boost everything" above 100%, tapped macOS's own helpers (PowerChime showed up as "Charging sound"). Now only real apps are listed or tapped (`AppFilter`, tested). On this Mac: Safari, Chrome, Spotify, Telegram, WhatsApp and Wispr Flow listed; PowerChime, Control Centre, Siri, call services and 16 daemons hidden.
 - **Intel build.** One app, x86_64 + arm64, both `minos 15.0`; build.sh refuses a single-chip result. Intel half untested (no Rosetta here). Note: macOS 27 drops Intel, so Intel users are on macOS 15-26.
 - **Deploy folder recorded.** `~/calmdoo` commit 958cd74 holds the files serving calmdoo.com (local only, not pushed).
 - **Vercel CLI** 54.18.6 -> 64.5.0. npm 11 held back esbuild's install script (its supply-chain default); left held back.
